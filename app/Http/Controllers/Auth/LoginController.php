@@ -37,4 +37,10 @@ class LoginController extends Controller
         $this->middleware('guest')->except('logout');
         $this->middleware('auth')->only('logout');
     }
+
+    public function showLoginForm()
+    {
+        // Arahkan ke view login milik AdminLTE yang sudah di-override
+        return view('vendor.adminlte.auth.login');
+    }
 }

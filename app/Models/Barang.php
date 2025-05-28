@@ -31,12 +31,12 @@ class Barang extends Model
         return $this->hasMany(Opname::class, 'barang_kode', 'kode');
     }
 
-    public function transaksiMasuk()
+    public function barangMasuk()
     {
         return $this->hasMany(BarangMasuk::class, 'barang_kode', 'kode');
     }
 
-    public function transaksiKeluar()
+    public function barangKeluar()
     {
         return $this->hasMany(BarangKeluar::class, 'barang_kode', 'kode');
     }
