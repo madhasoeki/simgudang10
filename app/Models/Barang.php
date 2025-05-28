@@ -23,7 +23,7 @@ class Barang extends Model
     // Relasi ke tabel stok, opname, transaksi masuk, dan transaksi keluar
     public function stok()
     {
-        return $this->hasOne(Stok::class, 'barang_kode', 'kode');
+        return $this->hasMany(Stok::class, 'barang_kode', 'kode');
     }
 
     public function opnames()

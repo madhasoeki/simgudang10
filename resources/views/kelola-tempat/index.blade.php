@@ -1,5 +1,8 @@
 @extends('adminlte::page')
 
+@section('plugins.Datatables', true)
+@section('plugins.Sweetalert2', true)
+
 @section('title_prefix', 'Kelola Tempat | ')
 
 @section('content_header')
@@ -29,11 +32,11 @@
                             <td>{{ $loop->iteration }}</td>
                             <td>{{ $tempat->nama }}</td>
                             <td>
-                                <a href="{{ route('tempat.edit', $tempat->id) }}" class="btn btn-warning btn-xs">Edit</a>
+                                <a href="{{ route('tempat.edit', $tempat->id) }}" class="btn btn-warning btn-sm">Edit</a>
                                 <form action="{{ route('tempat.destroy', $tempat->id) }}" method="POST" class="d-inline">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="btn btn-danger btn-xs">Hapus</button>
+                                    <button type="submit" class="btn btn-danger btn-sm">Hapus</button>
                                 </form>
                             </td>
                         </tr>

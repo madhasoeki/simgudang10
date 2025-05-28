@@ -2,8 +2,9 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\BarangController;
-use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\TempatController;
+use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\BarangMasukController;
 
 /*
 |--------------------------------------------------------------------------
@@ -35,6 +36,12 @@ Route::middleware(['auth'])->group(function () {
     // Kelola tempat
     Route::resource('tempat', TempatController::class);
 
+    // Kelola barang masuk
+    Route::resource('barang-masuk', BarangMasukController::class)->except([
+        'show'
+    ]);
+    // Rute tambahan untuk AJAX DataTables
+    Route::get('barang-masuk/data', [BarangMasukController::class, 'data'])->name('barang-masuk.data');
     
     // Route khusus super admin
     // Route::middleware(['role:super admin'])->group(function () {

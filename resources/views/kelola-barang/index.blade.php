@@ -1,5 +1,9 @@
 @extends('adminlte::page')
 
+{{-- Mengaktifkan plugin DataTable dan Buttons --}}
+@section('plugins.Datatables', true)
+@section('plugins.Sweetalert2', true)
+
 @section('title_prefix', 'Kelola Barang | ')
 
 @section('content_header')
@@ -33,14 +37,14 @@
                             <td>{{ $barang->kode }}</td>
                             <td>{{ $barang->nama }}</td>
                             {{-- Tampilkan total stok, jika tidak ada (null), tampilkan 0 --}}
-                            <td>{{ $barang->stoks_sum_jumlah ?? 0 }}</td>
+                            <td>{{ $barang->stok_sum_jumlah ?? 0 }}</td>
                             <td>{{ $barang->satuan }}</td>
                             <td>
-                                <a href="{{ route('barang.edit', $barang->kode) }}" class="btn btn-warning btn-xs">Edit</a>
+                                <a href="{{ route('barang.edit', $barang->kode) }}" class="btn btn-warning btn-sm">Edit</a>
                                 <form action="{{ route('barang.destroy', $barang->kode) }}" method="POST" class="d-inline">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="btn btn-danger btn-xs">Hapus</button>
+                                    <button type="submit" class="btn btn-danger btn-sm">Hapus</button>
                                 </form>
                             </td>
                         </tr>
@@ -63,15 +67,15 @@
     <script>
         $(document).ready(function() {
             $('#tabel-barang').DataTable({
-                "ordering": false,
-                "language": {
-                    "url": "https://cdn.datatables.net/plug-ins/2.0.8/i18n/id.json"
+                ordering: false,
+                language: {
+                    url: "https://cdn.datatables.net/plug-ins/2.0.8/i18n/id.json"
                 },
-                "columnDefs": [
+                columnDefs: [
                     {
-                        "targets": 0,  // Target kolom pertama (indeks 0 adalah kolom "No")
-                        "width": "5%", // Alokasikan lebar sekitar 5% dari total lebar tabel
-                        "className": "text-center", // Atur agar teks di kolom ini menjadi di tengah
+                        targets: 0,  // Target kolom pertama (indeks 0 adalah kolom "No")
+                        width: "5%", // Alokasikan lebar sekitar 5% dari total lebar tabel
+                        className: "text-center", // Atur agar teks di kolom ini menjadi di tengah
                     },
                 ]
             });

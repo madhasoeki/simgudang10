@@ -17,7 +17,7 @@ class BarangMasuk extends Model
 
     public function barang()
     {
-        return $this->belongsTo(Barang::class, 'barang_kode');
+        return $this->belongsTo(Barang::class, 'barang_kode', 'kode');
     }
 
     public function user()
