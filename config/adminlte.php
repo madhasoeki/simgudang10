@@ -313,7 +313,7 @@ return [
         ],
         [
             'text' => 'Tempat',
-            'url' => 'admin/settings',
+            'url' => 'tempat',
             'icon' => 'fas fa-fw fa-map-marker-alt',
         ],
         [
