@@ -32,11 +32,11 @@
                             <td>{{ $loop->iteration }}</td>
                             <td>{{ $tempat->nama }}</td>
                             <td>
-                                <a href="{{ route('tempat.edit', $tempat->id) }}" class="btn btn-warning btn-sm">Edit</a>
+                                <a href="{{ route('tempat.edit', $tempat->id) }}" class="btn btn-warning btn-sm"><i class="fas fa-edit"></i>Edit</a>
                                 <form action="{{ route('tempat.destroy', $tempat->id) }}" method="POST" class="d-inline">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="btn btn-danger btn-sm">Hapus</button>
+                                    <button type="submit" class="btn btn-danger btn-sm"><i class="fas fa-trash"></i>Hapus</button>
                                 </form>
                             </td>
                         </tr>

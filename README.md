@@ -4,18 +4,33 @@ Sistem Informasi Manajemen Gudang (SIM Gudang) adalah aplikasi web berbasis Lara
 
 ## Fitur Utama
 
--   **Manajemen Barang:** Tambah, lihat, edit, dan hapus data master barang.
--   **Pencatatan Barang Masuk:** Catat setiap barang yang masuk ke gudang untuk memperbarui stok secara otomatis.
--   **Pencatatan Barang Keluar:** Catat setiap barang yang keluar dari gudang untuk mengurangi stok secara otomatis.
--   **Manajemen Stok:** Lihat jumlah stok terkini untuk setiap barang.
--   **Laporan Stok Opname:** Hasilkan laporan untuk proses stok opname.
--   **Manajemen Pengguna & Hak Akses:** Sistem peran dan izin untuk membatasi akses pengguna.
+- **Dashboard Interaktif**: Menampilkan ringkasan data penting seperti total barang masuk/keluar hari ini dan daftar barang dengan stok menipis.
+- **Manajemen Data Master**:
+    - CRUD (Create, Read, Update, Delete) untuk data **Barang**.
+    - CRUD untuk data **Lokasi/Tempat** penyimpanan di gudang.
+- **Pencatatan Transaksi**:
+    - Pencatatan **Barang Masuk** yang secara otomatis akan menambah stok.
+    - Pencatatan **Barang Keluar** yang secara otomatis akan mengurangi stok.
+- **Stok Opname**: Fitur untuk melakukan penyesuaian stok fisik dengan data di sistem.
+- **Manajemen Pengguna & Hak Akses**:
+    - Sistem Role & Permission (menggunakan `spatie/laravel-permission`).
+    - Role default: `super-admin` dan `gudang`.
+    - `super-admin` memiliki akses penuh termasuk kelola pengguna dan melihat riwayat.
+- **Laporan Lengkap**:
+    - Laporan Stok per Lokasi/Tempat.
+    - Laporan Rekapitulasi Status Tempat.
+    - Laporan Hasil Stok Opname.
+    - Laporan Data yang Tidak Sesuai (Data Miss).
+- **Log Aktivitas**: Semua perubahan data penting (Create, Update, Delete) dicatat dalam tabel *history* untuk keperluan audit.
 
 ## Teknologi yang Digunakan
 
--   **Backend:** PHP, Laravel Framework
--   **Frontend:** Blade Templates, AdminLTE 3
--   **Database:** MySQL (atau database lain yang didukung oleh Laravel)
+- **Backend**: PHP 8.1+, [Laravel Framework 10.x](https://laravel.com/)
+- **Frontend**: Blade, Bootstrap 4, JavaScript
+- **UI Admin**: [AdminLTE 3](https://adminlte.io/) via [JeroenNoten/Laravel-AdminLTE](https://github.com/jeroennoten/Laravel-AdminLTE)
+- **Manajemen Hak Akses**: [Spatie/laravel-permission](https://github.com/spatie/laravel-permission)
+- **Database**: Kompatibel dengan MySQL, MariaDB, PostgreSQL
+- **Build Tool**: [Vite](https://vitejs.dev/)
 
 ## Prasyarat
 
@@ -24,55 +39,66 @@ Sistem Informasi Manajemen Gudang (SIM Gudang) adalah aplikasi web berbasis Lara
 -   Node.js & NPM
 -   Database Server (cth: MySQL, MariaDB)
 
-## Panduan Instalasi
+### Langkah-langkah Instalasi
 
-1.  **Clone Repositori**
+1.  **Clone repositori ini:**
     ```bash
-    git clone [https://github.com/madhasoeki/simgudang10.git](https://github.com/madhasoeki/simgudang10.git)
-    cd simgudang10
+    git clone [URL_REPOSITORY_ANDA]
+    cd [NAMA_FOLDER_PROYEK]
     ```
 
-2.  **Instal Dependensi PHP**
+2.  **Instal dependensi PHP via Composer:**
     ```bash
     composer install
     ```
 
-3.  **Instal Dependensi JavaScript**
+3.  **Instal dependensi JavaScript via NPM:**
     ```bash
     npm install
+    ```
+
+4.  **Konfigurasi Lingkungan:**
+    - Salin file `.env.example` menjadi `.env`.
+      ```bash
+      cp .env.example .env
+      ```
+    - Buat *application key* baru.
+      ```bash
+      php artisan key:generate
+      ```
+
+5.  **Konfigurasi Database:**
+    - Buka file `.env` dan sesuaikan konfigurasi database Anda (DB_HOST, DB_PORT, DB_DATABASE, DB_USERNAME, DB_PASSWORD).
+      ```dotenv
+      DB_CONNECTION=mysql
+      DB_HOST=127.0.0.1
+      DB_PORT=3306
+      DB_DATABASE=simgudang
+      DB_USERNAME=root
+      DB_PASSWORD=
+      ```
+
+6.  **Jalankan Migrasi dan Seeder:**
+    - Perintah ini akan membuat semua tabel yang dibutuhkan sekaligus mengisi data awal (role, permission, dan user default).
+      ```bash
+      php artisan migrate --seed
+      ```
+
+7.  **Kompilasi Aset Frontend:**
+    ```bash
     npm run build
     ```
 
-4.  **Konfigurasi Lingkungan**
-    * Salin file `.env.example` menjadi `.env`.
-        ```bash
-        cp .env.example .env
-        ```
-    * Buka file `.env` dan konfigurasikan koneksi database Anda (`DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`).
+8.  **Jalankan Server Lokal:**
+    - Anda bisa menggunakan server bawaan Laravel.
+      ```bash
+      php artisan serve
+      ```
+    - Aplikasi akan berjalan di `http://127.0.0.1:8000`.
 
-5.  **Generate Kunci Aplikasi**
-    ```bash
-    php artisan key:generate
-    ```
+## Akun Default
 
-6.  **Jalankan Migrasi dan Seeder Database**
-    * Perintah ini akan membuat semua tabel yang dibutuhkan dan mengisi data awal (termasuk peran dan pengguna default).
-    ```bash
-    php artisan migrate --seed
-    ```
+Setelah menjalankan *seeder*, sebuah akun `super-admin` akan dibuat secara otomatis. Gunakan kredensial berikut untuk login:
 
-7.  **Jalankan Server Pengembangan**
-    ```bash
-    php artisan serve
-    ```
-
-    Aplikasi sekarang akan berjalan di `http://127.0.0.1:8000`.
-
-## Pengguna Default
-
-Setelah menjalankan *seeder*, Anda dapat login menggunakan akun berikut:
-
--   **Email:** `superadmin@example.com`
--   **Password:** `password`
-
----
+- **Email**: `superadmin@example.com`
+- **Password**: `password`

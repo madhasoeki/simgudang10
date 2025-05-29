@@ -10,6 +10,7 @@ use App\Http\Controllers\DataMissController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\BarangMasukController;
 use App\Http\Controllers\BarangKeluarController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\RekapLaporanController;
 use App\Http\Controllers\LaporanPerTempatController;
 
@@ -33,9 +34,8 @@ Route::post('logout', [LoginController::class, 'logout'])->name('logout');
 
 // Semua route di bawah ini wajib login
 Route::middleware(['auth'])->group(function () {
-    Route::get('/', function () {
-        return view('welcome');
-    });
+    // routes/web.php
+    Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
     // Kelola barang
     Route::resource('barang', BarangController::class);

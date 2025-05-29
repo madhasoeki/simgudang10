@@ -40,11 +40,11 @@
                             <td>{{ $barang->stok_sum_jumlah ?? 0 }}</td>
                             <td>{{ $barang->satuan }}</td>
                             <td>
-                                <a href="{{ route('barang.edit', $barang->kode) }}" class="btn btn-warning btn-sm">Edit</a>
+                                <a href="{{ route('barang.edit', $barang->kode) }}" class="btn btn-warning btn-sm"><i class="fas fa-edit"></i>Edit</a>
                                 <form action="{{ route('barang.destroy', $barang->kode) }}" method="POST" class="d-inline">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="btn btn-danger btn-sm">Hapus</button>
+                                    <button type="submit" class="btn btn-danger btn-sm"><i class="fas fa-trash"></i>Hapus</button>
                                 </form>
                             </td>
                         </tr>

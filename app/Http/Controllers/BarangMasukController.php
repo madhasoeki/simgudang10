@@ -57,7 +57,7 @@ class BarangMasukController extends Controller
             ->addColumn('action', function($row){ // <-- Tambahkan kolom aksi
                 // Tombol Edit
                 $editUrl = route('barang-masuk.edit', $row->id); // Asumsi nama rute adalah barang-masuk.edit
-                $btnEdit = '<a href="'.$editUrl.'" class="btn btn-xs btn-warning mr-1"><i class="fas fa-pencil-alt"></i> Edit</a>';
+                $btnEdit = '<a href="'.$editUrl.'" class="btn btn-sm btn-warning mr-1"><i class="fas fa-edit"></i> Edit</a>';
 
                 // Tombol Hapus (akan menggunakan form untuk method DELETE)
                 // ID unik untuk form hapus, misalnya delete-form-1, delete-form-2, dst.
@@ -68,7 +68,7 @@ class BarangMasukController extends Controller
                 $btnDelete = '<form id="'.$deleteFormId.'" action="'.$deleteUrl.'" method="POST" style="display:inline;">
                                 '.csrf_field().'
                                 '.method_field("DELETE").'
-                                <button type="submit" class="btn btn-xs btn-danger delete-btn" data-form-id="'.$deleteFormId.'"><i class="fas fa-trash"></i> Hapus</button>
+                                <button type="submit" class="btn btn-sm btn-danger delete-btn" data-form-id="'.$deleteFormId.'"><i class="fas fa-trash"></i> Hapus</button>
                             </form>';
 
                 return '<div class="btn-group">'.$btnEdit . $btnDelete.'</div>';

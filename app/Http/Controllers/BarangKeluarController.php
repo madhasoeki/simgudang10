@@ -64,7 +64,7 @@ class BarangKeluarController extends Controller
             })
             ->addColumn('action', function($row){
                 $editUrl = route('barang-keluar.edit', $row->id);
-                $btnEdit = '<a href="'.$editUrl.'" class="btn btn-xs btn-warning mr-1"><i class="fas fa-pencil-alt"></i> Edit</a>';
+                $btnEdit = '<a href="'.$editUrl.'" class="btn btn-sm btn-warning mr-1"><i class="fas fa-edit"></i> Edit</a>';
 
                 $deleteFormId = 'delete-form-bk-' . $row->id; // 'bk' untuk barang keluar
                 $deleteUrl = route('barang-keluar.destroy', $row->id);
@@ -72,7 +72,7 @@ class BarangKeluarController extends Controller
                 $btnDelete = '<form id="'.$deleteFormId.'" action="'.$deleteUrl.'" method="POST" style="display:inline;">
                                 '.csrf_field().'
                                 '.method_field("DELETE").'
-                                <button type="submit" class="btn btn-xs btn-danger delete-btn-bk" data-form-id="'.$deleteFormId.'"><i class="fas fa-trash"></i> Hapus</button>
+                                <button type="submit" class="btn btn-sm btn-danger delete-btn-bk" data-form-id="'.$deleteFormId.'"><i class="fas fa-trash"></i> Hapus</button>
                             </form>';
 
                 return '<div class="btn-group">'.$btnEdit . $btnDelete.'</div>';
