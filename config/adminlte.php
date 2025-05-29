@@ -354,13 +354,15 @@ return [
         ],
         [
             'text' => 'Kelola User',
-            'url' => 'admin/settings',
+            'url' => 'users',
             'icon' => 'fas fa-fw fa-users',
+            'can' => 'manage users',
         ],
         [
             'text' => 'History',
-            'url' => 'admin/settings',
+            'url' => 'history',
             'icon' => 'fas fa-fw fa-history',
+            'can' => 'view history',
         ],
     ],
 

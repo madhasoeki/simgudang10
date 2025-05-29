@@ -76,5 +76,3 @@ Setelah menjalankan *seeder*, Anda dapat login menggunakan akun berikut:
 -   **Password:** `password`
 
 ---
-
-Semoga sukses dengan proyek Anda! Teruslah belajar dan jangan ragu untuk bertanya jika Anda membutuhkan bantuan lebih lanjut.

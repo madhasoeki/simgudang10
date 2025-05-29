@@ -1,9 +1,11 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\UserController;
 use App\Http\Controllers\BarangController;
 use App\Http\Controllers\OpnameController;
 use App\Http\Controllers\TempatController;
+use App\Http\Controllers\HistoryController;
 use App\Http\Controllers\DataMissController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\BarangMasukController;
@@ -97,9 +99,13 @@ Route::middleware(['auth'])->group(function () {
     });
 
     
-    // Route khusus super admin
-    // Route::middleware(['role:super admin'])->group(function () {
-    //     Route::get('/kelola-user', [KelolaUserController::class, 'index'])->name('kelola-user');
-    //     Route::get('/history', [HistoryController::class, 'index'])->name('history');
-    // });
+    // Grup untuk fitur yang memerlukan permission 'manage users'
+    Route::group(['middleware' => ['can:manage users']], function () {
+        Route::resource('users', UserController::class)->except(['show']);
+    });
+
+    // Grup untuk fitur yang memerlukan permission 'view history'
+    Route::group(['middleware' => ['can:view history']], function () {
+        Route::get('history', [HistoryController::class, 'index'])->name('history.index');
+    });
 });
