@@ -348,7 +348,7 @@ return [
                 ],
                 [
                     'text' => 'Rekap Laporan',
-                    'url' => 'admin/barang-keluar',
+                    'url' => 'laporan/rekap-status-tempat',
                 ],
             ],
         ],

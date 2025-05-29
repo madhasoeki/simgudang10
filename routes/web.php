@@ -8,6 +8,7 @@ use App\Http\Controllers\DataMissController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\BarangMasukController;
 use App\Http\Controllers\BarangKeluarController;
+use App\Http\Controllers\RekapLaporanController;
 use App\Http\Controllers\LaporanPerTempatController;
 
 /*
@@ -87,6 +88,12 @@ Route::middleware(['auth'])->group(function () {
         // Route untuk Laporan per Tempat
         Route::get('/per-tempat', [LaporanPerTempatController::class, 'index'])->name('per-tempat.index');
         Route::get('/per-tempat/data', [LaporanPerTempatController::class, 'data'])->name('per-tempat.data');
+
+        // Route untuk Rekap Laporan
+        Route::get('/rekap-status-tempat', [RekapLaporanController::class, 'index'])->name('rekap-status-tempat.index');
+        Route::get('/rekap-status-tempat/data', [RekapLaporanController::class, 'data'])->name('rekap-status-tempat.data');
+        Route::post('/rekap-status-tempat/refresh', [RekapLaporanController::class, 'refresh'])->name('rekap-status-tempat.refresh');
+        Route::post('/rekap-status-tempat/toggle-status/{statusTempat}', [RekapLaporanController::class, 'toggleStatus'])->name('rekap-status-tempat.toggle-status');
     });
 
     

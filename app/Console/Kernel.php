@@ -15,6 +15,7 @@ class Kernel extends ConsoleKernel
     protected $commands = [
         // Daftarkan commandmu di sini jika perlu, tapi untuk scheduling tidak wajib
         Commands\GenerateOpnameReport::class,
+        Commands\GenerateStatusTempatReport::class,
     ];
 
     /**
@@ -26,6 +27,7 @@ class Kernel extends ConsoleKernel
 
         // Tambahkan baris ini
         $schedule->command('opname:generate')->daily()->at('01:00');
+        $schedule->command('statustempat:generate')->daily()->at('01:30');
     }
 
     /**
