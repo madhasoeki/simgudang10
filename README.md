@@ -1,6 +1,9 @@
 # Sistem Informasi Manajemen Gudang (SIM Gudang)
 
-Sistem Informasi Manajemen Gudang (SIM Gudang) adalah aplikasi web berbasis Laravel yang dirancang untuk membantu mengelola inventaris barang di dalam gudang. Aplikasi ini mencakup fungsionalitas untuk mengelola data barang, mencatat barang masuk, mencatat barang keluar, dan mengelola lokasi penyimpanan.
+![Laravel](https://img.shields.io/badge/Laravel-FF2D20?style=for-the-badge&logo=laravel&logoColor=white)
+![AdminLTE](https://img.shields.io/badge/AdminLTE%203-007BFF?style=for-the-badge&logo=bootstrap&logoColor=white)
+
+Sistem Informasi Manajemen Gudang (SIM Gudang) adalah aplikasi web berbasis Laravel yang dirancang untuk membantu mengelola inventaris barang di dalam gudang. Aplikasi ini mencakup pencatatan barang masuk, barang keluar, manajemen stok, hingga pelaporan.
 
 ## Fitur Utama
 
