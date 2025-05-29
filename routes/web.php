@@ -53,6 +53,28 @@ Route::middleware(['auth'])->group(function () {
     // Rute tambahan untuk mendapatkan harga barang yang tersedia (untuk dropdown dinamis)
     Route::get('barang-keluar/get-harga-stok/{barang_kode}', [BarangKeluarController::class, 'getHargaStokTersedia'])->name('barang-keluar.getHargaStok');
 
+
+    // Route untuk Opname
+    Route::prefix('opname')->name('opname.')->group(function () {
+        // Halaman utama untuk menampilkan laporan opname
+        Route::get('/', [App\Http\Controllers\OpnameController::class, 'index'])->name('index');
+
+        // Route untuk mengambil data via AJAX untuk DataTables
+        Route::get('/data', [App\Http\Controllers\OpnameController::class, 'data'])->name('data');
+
+        // Menjalankan command refresh data secara manual
+        Route::post('/refresh', [App\Http\Controllers\OpnameController::class, 'refresh'])->name('refresh');
+
+        // Menyimpan data lapangan dan keterangan yang diinput user
+        Route::put('/update/{opname}', [App\Http\Controllers\OpnameController::class, 'update'])->name('update');
+
+        // Proses approval oleh super admin
+        Route::post('/approve/{opname}', [App\Http\Controllers\OpnameController::class, 'approve'])->name('approve')->middleware('can:approve opname');
+        
+        // Proses pembatalan approval oleh super admin
+        Route::post('/cancel-approval/{opname}', [App\Http\Controllers\OpnameController::class, 'cancelApproval'])->name('cancel.approval')->middleware('can:approve opname');
+    });
+
     
     // Route khusus super admin
     // Route::middleware(['role:super admin'])->group(function () {

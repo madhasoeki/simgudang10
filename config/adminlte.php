@@ -336,7 +336,7 @@ return [
             'submenu' => [
                 [
                     'text' => 'Opname',
-                    'url' => 'admin/barang-masuk',
+                    'url' => 'opname',
                 ],
                 [
                     'text' => 'Data Miss',

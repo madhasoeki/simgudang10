@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Traits\LogsActivity;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Opname extends Model
 {
+    use LogsActivity;
+    
     protected $table = 'opname';
     
     protected $fillable = [
@@ -16,7 +19,7 @@ class Opname extends Model
         'stock_awal',
         'total_masuk',
         'total_keluar',
-        'stock_total', // <-- TAMBAHKAN INI
+        'stock_total',
         'total_lapangan',
         'selisih',
         'keterangan',
