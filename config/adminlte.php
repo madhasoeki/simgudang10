@@ -344,7 +344,7 @@ return [
                 ],
                 [
                     'text' => 'Laporan Per Tempat',
-                    'url' => 'admin/barang-keluar',
+                    'url' => 'laporan/per-tempat',
                 ],
                 [
                     'text' => 'Rekap Laporan',

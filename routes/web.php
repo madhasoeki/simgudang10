@@ -8,6 +8,7 @@ use App\Http\Controllers\DataMissController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\BarangMasukController;
 use App\Http\Controllers\BarangKeluarController;
+use App\Http\Controllers\LaporanPerTempatController;
 
 /*
 |--------------------------------------------------------------------------
@@ -80,6 +81,13 @@ Route::middleware(['auth'])->group(function () {
     // Lihat data miss
     Route::get('data-miss', [DataMissController::class, 'index'])->name('data-miss');
     Route::get('data-miss/data', [DataMissController::class, 'data'])->name('data-miss.data');
+
+    Route::prefix('laporan')->name('laporan.')->group(function () {
+        
+        // Route untuk Laporan per Tempat
+        Route::get('/per-tempat', [LaporanPerTempatController::class, 'index'])->name('per-tempat.index');
+        Route::get('/per-tempat/data', [LaporanPerTempatController::class, 'data'])->name('per-tempat.data');
+    });
 
     
     // Route khusus super admin
