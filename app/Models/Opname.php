@@ -37,11 +37,6 @@ class Opname extends Model
         return $this->belongsTo(Barang::class, 'barang_kode', 'kode');
     }
 
-    public function stok()
-    {
-        return $this->belongsTo(Stok::class, 'barang_kode', 'barang_kode');
-    }
-
     // Scope untuk filter berdasarkan periode
     public function scopeInPeriode($query, $start, $end)
     {
