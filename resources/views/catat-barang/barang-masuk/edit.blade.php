@@ -61,10 +61,11 @@
 
             <div class="form-group">
                 <label for="tanggal">Tanggal Masuk</label>
-                {{-- Format tanggal sesuai dengan input type="date" (Y-m-d) --}}
-                <input type="date" name="tanggal" id="tanggal" 
-                       class="form-control @error('tanggal') is-invalid @enderror" 
-                       value="{{ old('tanggal', $barangMasuk->tanggal ? \Carbon\Carbon::parse($barangMasuk->tanggal)->format('Y-m-d') : now()->format('Y-m-d')) }}">
+                <input type="date" name="tanggal" id="tanggal_edit" {{-- Pastikan ID unik jika perlu --}}
+                    class="form-control @error('tanggal') is-invalid @enderror" 
+                    value="{{ old('tanggal', $barangMasuk->tanggal ? \Carbon\Carbon::parse($barangMasuk->tanggal)->format('Y-m-d') : $today) }}"
+                    max="{{ $today }}" {{-- Batas maksimal adalah hari ini --}}
+                    required>
                 @error('tanggal') <span class="invalid-feedback">{{ $message }}</span> @enderror
             </div>
         </div>

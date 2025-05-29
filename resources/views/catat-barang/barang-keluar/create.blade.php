@@ -89,7 +89,11 @@
                     {{-- Field Tanggal Keluar --}}
                     <div class="form-group">
                         <label for="tanggal">Tanggal Keluar <span class="text-danger">*</span></label>
-                        <input type="date" name="tanggal" id="tanggal" class="form-control @error('tanggal') is-invalid @enderror" value="{{ old('tanggal', now()->format('Y-m-d')) }}" required>
+                        <input type="date" name="tanggal" id="tanggal" 
+                            class="form-control @error('tanggal') is-invalid @enderror" 
+                            value="{{ old('tanggal', $today) }}" {{-- Default ke hari ini --}}
+                            max="{{ $today }}" {{-- Batas maksimal adalah hari ini --}}
+                            required>
                         @error('tanggal') <span class="invalid-feedback">{{ $message }}</span> @enderror
                     </div>
                 </div>

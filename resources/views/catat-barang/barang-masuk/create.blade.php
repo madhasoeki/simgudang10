@@ -51,9 +51,12 @@
             </div>
 
             <div class="form-group">
-                <label for="tanggal">Tanggal Masuk</label>
-                {{-- Ubah tipe input menjadi 'date' --}}
-                <input type="date" name="tanggal" id="tanggal" class="form-control @error('tanggal') is-invalid @enderror" value="{{ old('tanggal', now()->format('Y-m-d')) }}">
+                <label for="tanggal">Tanggal Masuk <span class="text-danger">*</span></label>
+                <input type="date" name="tanggal" id="tanggal" 
+                    class="form-control @error('tanggal') is-invalid @enderror" 
+                    value="{{ old('tanggal', $today) }}"
+                    max="{{ $today }}"
+                    required>
                 @error('tanggal') <span class="invalid-feedback">{{ $message }}</span> @enderror
             </div>
         </div>

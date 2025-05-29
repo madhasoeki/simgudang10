@@ -80,8 +80,8 @@ class BarangMasukController extends Controller
     public function create()
     {
         $barangs = Barang::orderBy('nama', 'asc')->get();
-        // Pastikan path view Anda benar. Sesuaikan jika perlu.
-        return view('catat-barang.barang-masuk.create', compact('barangs'));
+        $today = Carbon::now(config('app.timezone'))->format('Y-m-d'); // Ambil tanggal hari ini
+        return view('catat-barang.barang-masuk.create', compact('barangs', 'today'));
     }
 
     public function store(Request $request)
@@ -90,7 +90,7 @@ class BarangMasukController extends Controller
             'barang_kode' => 'required|string|exists:barang,kode',
             'qty' => 'required|numeric|min:1',
             'harga' => 'required|numeric|min:0',
-            'tanggal' => 'required|date',
+            'tanggal' => 'required|date|before_or_equal:today',
         ]);
 
         DB::transaction(function () use ($request) {
@@ -119,12 +119,9 @@ class BarangMasukController extends Controller
 
     public function edit(BarangMasuk $barangMasuk)
     {
-        // Ambil semua data barang untuk ditampilkan di dropdown
         $barangs = Barang::orderBy('nama', 'asc')->get();
-
-        // Kirim data barang masuk yang akan diedit dan daftar barang ke view
-        // Pastikan path view Anda benar.
-        return view('catat-barang.barang-masuk.edit', compact('barangMasuk', 'barangs'));
+        $today = Carbon::now(config('app.timezone'))->format('Y-m-d'); // Ambil tanggal hari ini
+        return view('catat-barang.barang-masuk.edit', compact('barangMasuk', 'barangs', 'today'));
     }
 
     public function update(Request $request, BarangMasuk $barangMasuk)
@@ -134,7 +131,7 @@ class BarangMasukController extends Controller
             'barang_kode' => 'required|string|exists:barang,kode',
             'qty' => 'required|numeric|min:1',
             'harga' => 'required|numeric|min:0',
-            'tanggal' => 'required|date',
+            'tanggal' => 'required|date|before_or_equal:today', // <-- Validasi ditambahkan
         ]);
 
         DB::transaction(function () use ($request, $barangMasuk) {

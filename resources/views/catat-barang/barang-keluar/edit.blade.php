@@ -101,8 +101,10 @@
                     <div class="form-group">
                         <label for="tanggal_edit">Tanggal Keluar <span class="text-danger">*</span></label>
                         <input type="date" name="tanggal" id="tanggal_edit" 
-                               class="form-control @error('tanggal') is-invalid @enderror" 
-                               value="{{ old('tanggal', $barangKeluar->tanggal ? \Carbon\Carbon::parse($barangKeluar->tanggal)->format('Y-m-d') : '') }}" required>
+                            class="form-control @error('tanggal') is-invalid @enderror" 
+                            value="{{ old('tanggal', $barangKeluar->tanggal ? \Carbon\Carbon::parse($barangKeluar->tanggal)->format('Y-m-d') : $today) }}"
+                            max="{{ $today }}" {{-- Batas maksimal adalah hari ini --}}
+                            required>
                         @error('tanggal') <span class="invalid-feedback">{{ $message }}</span> @enderror
                     </div>
                 </div>
