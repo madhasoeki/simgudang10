@@ -5,6 +5,7 @@ use App\Http\Controllers\BarangController;
 use App\Http\Controllers\TempatController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\BarangMasukController;
+use App\Http\Controllers\BarangKeluarController;
 
 /*
 |--------------------------------------------------------------------------
@@ -42,6 +43,16 @@ Route::middleware(['auth'])->group(function () {
     ]);
     // Rute tambahan untuk AJAX DataTables
     Route::get('barang-masuk/data', [BarangMasukController::class, 'data'])->name('barang-masuk.data');
+
+    // Kelola barang keluar
+    Route::resource('barang-keluar', BarangKeluarController::class)->except([
+        'show' // Kita mungkin tidak butuh halaman show untuk transaksi
+    ]);
+    // Rute tambahan untuk AJAX DataTables Barang Keluar
+    Route::get('barang-keluar/data', [BarangKeluarController::class, 'data'])->name('barang-keluar.data');
+    // Rute tambahan untuk mendapatkan harga barang yang tersedia (untuk dropdown dinamis)
+    Route::get('barang-keluar/get-harga-stok/{barang_kode}', [BarangKeluarController::class, 'getHargaStokTersedia'])->name('barang-keluar.getHargaStok');
+
     
     // Route khusus super admin
     // Route::middleware(['role:super admin'])->group(function () {

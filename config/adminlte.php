@@ -326,7 +326,7 @@ return [
                 ],
                 [
                     'text' => 'Barang Keluar',
-                    'url' => 'admin/barang-keluar',
+                    'url' => 'barang-keluar',
                 ],
             ],
         ],
