@@ -72,7 +72,7 @@ Sistem Informasi Manajemen Gudang (SIM Gudang) adalah aplikasi web berbasis Lara
 
 Setelah menjalankan *seeder*, Anda dapat login menggunakan akun berikut:
 
--   **Email:** `admin@example.com`
+-   **Email:** `superadmin@example.com`
 -   **Password:** `password`
 
 ---

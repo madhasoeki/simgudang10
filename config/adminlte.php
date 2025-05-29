@@ -340,7 +340,7 @@ return [
                 ],
                 [
                     'text' => 'Data Miss',
-                    'url' => 'admin/barang-keluar',
+                    'url' => 'data-miss',
                 ],
                 [
                     'text' => 'Laporan Per Tempat',

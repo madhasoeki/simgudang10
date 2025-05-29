@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use App\Traits\LogsActivity;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class StatusTempat extends Model
 {
-    protected $table = 'tempat_status';
+    use LogsActivity;
+    
+    protected $table = 'status_tempat';
     protected $fillable = [
         'tempat_id',
         'periode_awal',

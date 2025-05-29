@@ -142,7 +142,7 @@
                     {data: 'actions', name: 'actions', orderable: false, searchable: false, className: 'text-center'},
                 ],
                 dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6 d-flex justify-content-end"fB>><"row"<"col-sm-12"tr>><"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
-                buttons: [{ extend: 'excelHtml5', title: 'Laporan Stok Opname', text: '<i class="fa fa-fw fa-file-excel"></i> Excel', className: 'btn btn-success' }]
+                buttons: [{ extend: 'excelHtml5', title: 'Laporan Stok Opname', text: '<i class="fa fa-fw fa-file-excel"></i> Excel', className: 'btn btn-success ml-2' }]
             });
             
             $('#date-range-btn').on('apply.daterangepicker', function(ev, picker) {
