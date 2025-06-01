@@ -28,7 +28,7 @@
                             <form id="form-refresh-rekap" action="{{ route('laporan.rekap-status-tempat.refresh') }}" method="POST" class="d-inline-block">
                                 @csrf
                                 <button type="submit" class="btn btn-primary">
-                                    <i class="fa fa-sync"></i> Segarkan Data Rekap
+                                    <i class="fa fa-sync"></i> Refresh Rekap
                                 </button>
                             </form>
                         </div>
@@ -149,7 +149,7 @@
                 Swal.fire({
                     title: 'Anda Yakin?', text: "Data rekap akan dibuat/diperbarui untuk periode saat ini.", icon: 'question',
                     showCancelButton: true, confirmButtonColor: '#3085d6', cancelButtonColor: '#d33',
-                    confirmButtonText: 'Ya, Segarkan!', cancelButtonText: 'Batal'
+                    confirmButtonText: 'Ya, Refresh!', cancelButtonText: 'Batal'
                 }).then((result) => { if (result.isConfirmed) { form.submit(); } });
             });
 

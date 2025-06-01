@@ -31,7 +31,7 @@
                     <option value="">-- Pilih Barang --</option>
                     @foreach ($barangs as $barang)
                         <option value="{{ $barang->kode }}" {{ old('barang_kode') == $barang->kode ? 'selected' : '' }}>
-                            {{ $barang->kode }} - {{ $barang->nama_barang }}
+                            {{ $barang->kode }} - {{ $barang->nama }}
                         </option>
                     @endforeach
                 </select>
