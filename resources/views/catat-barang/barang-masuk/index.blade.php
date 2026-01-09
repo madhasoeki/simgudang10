@@ -147,14 +147,14 @@ $(document).ready(function() {
             }
         },
         columns: [
-            { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false, className: 'text-center' },
-            { data: 'tanggal', name: 'barang_masuk.tanggal' },
-            { data: 'kode_barang', name: 'barang.kode' },
-            { data: 'nama', name: 'barang.nama' },
+            { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false, className: 'text-center', width: '10px' }, // No tengahkan
+            { data: 'tanggal', name: 'barang_masuk.tanggal' }, // Tanggal dengan lebar tetap
+            { data: 'kode_barang', name: 'barang.kode' }, // Kode Barang dengan lebar tetap
+            { data: 'nama', name: 'barang.nama' }, // Nama Barang dengan lebar tetap
             { data: 'qty', name: 'qty', className: 'text-center' }, // Qty tengahkan
-            { data: 'harga', name: 'harga', className: 'text-right' },
-            { data: 'jumlah', name: 'jumlah', className: 'text-right' },
-            { data: 'action', name: 'action', orderable: false, searchable: false, className: 'text-center' }
+            { data: 'harga', name: 'harga', className: 'text-right' }, // Harga dengan lebar tetap
+            { data: 'jumlah', name: 'jumlah', className: 'text-right' }, // Jumlah dengan lebar tetap
+            { data: 'action', name: 'action', orderable: false, searchable: false, className: 'text-center', width: '150px' } // Aksi dengan lebar tetap
         ],
         // Mengatur tata letak kontrol DataTables: l (length), f (filter/search), B (buttons), t (table), i (info), p (pagination)
         // 'fB' akan membuat tombol muncul di sebelah kanan search field jika ada cukup ruang.

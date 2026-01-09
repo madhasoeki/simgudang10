@@ -1,0 +1,126 @@
+classDiagram
+    %% =====================
+    %% MODELS LAYER
+    %% =====================
+    class User
+    class Barang
+    class BarangMasuk
+    class BarangKeluar
+    class Stok
+    class Opname
+    class Tempat
+    class StatusTempat
+    class History
+
+    User "1" o-- "many" History : creates
+    User "1" o-- "many" BarangMasuk
+    User "1" o-- "many" BarangKeluar
+
+    Barang "1" o-- "many" BarangMasuk
+    Barang "1" o-- "many" BarangKeluar
+    Barang "1" o-- "many" Stok
+    Barang "1" o-- "many" Opname
+
+    Tempat "1" o-- "many" BarangKeluar
+    Tempat "1" o-- "many" Stok
+    Tempat "1" o-- "many" Opname
+    Tempat "1" o-- "many" StatusTempat
+
+    BarangMasuk o-- Barang : "belongs to"
+    BarangMasuk o-- User : "belongs to"
+    BarangKeluar o-- Barang : "belongs to"
+    BarangKeluar o-- Tempat : "belongs to"
+    BarangKeluar o-- User : "belongs to"
+    Stok o-- Barang : "belongs to"
+    Stok o-- Tempat : "belongs to"
+    Opname o-- Barang : "belongs to"
+    Opname o-- Tempat : "belongs to"
+    StatusTempat o-- Tempat : "belongs to"
+    History o-- User : "belongs to"
+
+    %% =====================
+    %% CONTROLLERS LAYER
+    %% =====================
+    class Controller
+    class DashboardController
+    class BarangController
+    class BarangMasukController
+    class BarangKeluarController
+    class OpnameController
+    class TempatController
+    class UserController
+    class RekapLaporanController
+    class LaporanPerTempatController
+    class HistoryController
+    class DataMissController
+
+    DashboardController --|> Controller
+    BarangController --|> Controller
+    BarangMasukController --|> Controller
+    BarangKeluarController --|> Controller
+    OpnameController --|> Controller
+    TempatController --|> Controller
+    UserController --|> Controller
+    RekapLaporanController --|> Controller
+    LaporanPerTempatController --|> Controller
+    HistoryController --|> Controller
+    DataMissController --|> Controller
+
+    DashboardController ..> Barang
+    DashboardController ..> BarangMasuk
+    DashboardController ..> BarangKeluar
+    DashboardController ..> Stok
+
+    BarangController ..> Barang
+    BarangMasukController ..> BarangMasuk
+    BarangMasukController ..> Barang
+    BarangMasukController ..> Stok
+    BarangKeluarController ..> BarangKeluar
+    BarangKeluarController ..> Barang
+    BarangKeluarController ..> Tempat
+    BarangKeluarController ..> Stok
+    OpnameController ..> Opname
+    OpnameController ..> Barang
+    OpnameController ..> Tempat
+    OpnameController ..> Stok
+    TempatController ..> Tempat
+    UserController ..> User
+    RekapLaporanController ..> StatusTempat
+    RekapLaporanController ..> Tempat
+    LaporanPerTempatController ..> BarangKeluar
+    LaporanPerTempatController ..> Tempat
+    HistoryController ..> History
+    DataMissController ..> Opname
+
+    %% =====================
+    %% COMMANDS LAYER
+    %% =====================
+    class Command
+    class GenerateOpnameReport
+    class GenerateStatusTempatReport
+
+    GenerateOpnameReport --|> Command
+    GenerateStatusTempatReport --|> Command
+
+    GenerateOpnameReport ..> Barang
+    GenerateOpnameReport ..> Tempat
+    GenerateOpnameReport ..> Stok
+    GenerateOpnameReport ..> Opname
+    GenerateStatusTempatReport ..> Tempat
+    GenerateStatusTempatReport ..> StatusTempat
+    GenerateStatusTempatReport ..> BarangKeluar
+
+    %% =====================
+    %% TRAITS & EXTERNALS (optional, bisa dihapus jika ingin lebih ringkas)
+    %% =====================
+    class LogsActivity
+    class SoftDeletes
+    class HasRoles
+
+    BarangMasuk --|> LogsActivity
+    BarangKeluar --|> LogsActivity
+    Stok --|> LogsActivity
+    Opname --|> LogsActivity
+    StatusTempat --|> LogsActivity
+    Barang --|> SoftDeletes
+    User --|> HasRoles

@@ -61,15 +61,27 @@
 @stop
 
 @section('js')
+
     <script>
+        // Deklarasi Toast secara global agar bisa dipakai di semua fungsi
+        const Toast = Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true,
+            didOpen: (toast) => {
+                toast.onmouseenter = Swal.stopTimer;
+                toast.onmouseleave = Swal.resumeTimer;
+            }
+        });
+
         $(document).ready(function() {
-            // Notifikasi Toast
+            // Notifikasi Toast dari session
             @if (session('success'))
-                const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, timerProgressBar: true, didOpen: (toast) => { toast.onmouseenter = Swal.stopTimer; toast.onmouseleave = Swal.resumeTimer; } });
                 Toast.fire({ icon: 'success', title: '{{ session('success') }}' });
             @endif
             @if (session('error'))
-                 const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 5000, timerProgressBar: true, didOpen: (toast) => { toast.onmouseenter = Swal.stopTimer; toast.onmouseleave = Swal.resumeTimer; } });
                 Toast.fire({ icon: 'error', title: '{{ session('error') }}' });
             @endif
 

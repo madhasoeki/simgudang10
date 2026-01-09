@@ -3,9 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\BarangKeluar;
-use App\Models\Stok; // Kita akan butuh ini nanti untuk create dan store
-use App\Models\Barang; // Kita akan butuh ini nanti untuk create
-use App\Models\Tempat; // Kita akan butuh ini nanti untuk create
+use App\Models\Stok;
+use App\Models\Barang;
+use App\Models\Tempat;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -14,18 +14,11 @@ use Illuminate\Support\Facades\Auth; // Untuk user_id
 
 class BarangKeluarController extends Controller
 {
-    /**
-     * Menampilkan halaman daftar barang keluar.
-     */
     public function index()
     {
-        // Path view sesuai info Anda
         return view('catat-barang.barang-keluar.index');
     }
 
-    /**
-     * Menyediakan data untuk DataTables.
-     */
     public function data(Request $request)
     {
         $query = DB::table('barang_keluar')
@@ -33,15 +26,14 @@ class BarangKeluarController extends Controller
             ->join('tempat', 'barang_keluar.tempat_id', '=', 'tempat.id')
             ->join('users', 'barang_keluar.user_id', '=', 'users.id')
             ->select([
-                'barang_keluar.id', // Penting untuk tombol aksi
+                'barang_keluar.id',
                 'barang_keluar.tanggal',
                 'barang.kode as kode_barang',
-                'barang.nama as nama_barang', // Pastikan ini 'barang.nama'
+                'barang.nama as nama_barang',
                 'barang_keluar.qty',
                 'barang_keluar.harga',
                 'barang_keluar.jumlah',
                 'tempat.nama as nama_tempat',
-                // 'users.name as user_name', // Dihapus karena diganti kolom aksi
                 'barang_keluar.keterangan'
             ]);
 
@@ -66,7 +58,7 @@ class BarangKeluarController extends Controller
                 $editUrl = route('barang-keluar.edit', $row->id);
                 $btnEdit = '<a href="'.$editUrl.'" class="btn btn-sm btn-warning mr-1"><i class="fas fa-edit"></i> Edit</a>';
 
-                $deleteFormId = 'delete-form-bk-' . $row->id; // 'bk' untuk barang keluar
+                $deleteFormId = 'delete-form-bk-' . $row->id;
                 $deleteUrl = route('barang-keluar.destroy', $row->id);
                 
                 $btnDelete = '<form id="'.$deleteFormId.'" action="'.$deleteUrl.'" method="POST" style="display:inline;">
@@ -92,11 +84,10 @@ class BarangKeluarController extends Controller
     public function getHargaStokTersedia($barang_kode)
     {
         // Ambil data stok untuk barang_kode tertentu yang jumlahnya > 0
-        // Kita juga mengurutkan berdasarkan harga, mungkin dari yang termurah atau termahal
         $stokTersedia = Stok::where('barang_kode', $barang_kode)
                             ->where('jumlah', '>', 0)
-                            ->orderBy('harga', 'asc') // Atau 'desc' sesuai preferensi
-                            ->select('harga', 'jumlah') // Hanya pilih kolom yang dibutuhkan
+                            ->orderBy('harga', 'asc') 
+                            ->select('harga', 'jumlah')
                             ->get();
 
         return response()->json($stokTersedia);
@@ -104,7 +95,6 @@ class BarangKeluarController extends Controller
 
     public function store(Request $request)
     {
-        // 1. Validasi input dasar
         $validatedData = $request->validate([
             'barang_kode' => 'required|string|exists:barang,kode',
             'harga' => 'required|numeric|min:0',
@@ -114,7 +104,6 @@ class BarangKeluarController extends Controller
             'keterangan' => 'nullable|string',
         ]);
 
-        // 2. Validasi tambahan: Pastikan stok cukup untuk barang_kode dan harga yang dipilih
         $stokTersedia = Stok::where('barang_kode', $request->barang_kode)
                             ->where('harga', $request->harga)
                             ->first();
@@ -125,9 +114,8 @@ class BarangKeluarController extends Controller
             ])->withInput();
         }
 
-        // 3. Lakukan operasi dalam transaksi database
         DB::transaction(function () use ($request, $stokTersedia) {
-            // a. Buat record baru di tabel barang_keluar
+            // Buat record baru di tabel barang_keluar
             BarangKeluar::create([
                 'barang_kode' => $request->barang_kode,
                 'tempat_id' => $request->tempat_id,
@@ -135,27 +123,16 @@ class BarangKeluarController extends Controller
                 'tanggal' => $request->tanggal,
                 'qty' => $request->qty,
                 'harga' => $request->harga,
-                'jumlah' => $request->qty * $request->harga, // Hitung total jumlah
+                'jumlah' => $request->qty * $request->harga,
                 'keterangan' => $request->keterangan,
             ]);
 
-            // b. Kurangi stok di tabel stok
-            // Kita sudah mengambil $stokTersedia di atas, jadi kita bisa langsung menggunakannya
+            // Kurangi stok di tabel stok
             $stokTersedia->jumlah -= $request->qty;
-            
-            // Opsional: Jika Anda ingin menghapus baris stok jika jumlahnya menjadi 0
-            // if ($stokTersedia->jumlah <= 0) {
-            //     $stokTersedia->delete();
-            // } else {
-            //     $stokTersedia->save();
-            // }
-            // Untuk sekarang, kita hanya simpan perubahannya.
-            // Pastikan tidak ada stok negatif jika itu tidak diinginkan.
-             if ($stokTersedia->jumlah < 0) $stokTersedia->jumlah = 0; // Pencegahan
+             if ($stokTersedia->jumlah < 0) $stokTersedia->jumlah = 0;
             $stokTersedia->save();
         });
 
-        // 4. Redirect dengan pesan sukses
         return redirect()->route('barang-keluar.index')
                          ->with('success', 'Data barang keluar berhasil dicatat.');
     }
@@ -165,7 +142,6 @@ class BarangKeluarController extends Controller
         $barangs = Barang::orderBy('nama', 'asc')->get();
         $tempats = Tempat::orderBy('nama', 'asc')->get();
         $stokHargaTersedia = Stok::where('barang_kode', $barangKeluar->barang_kode)
-                                    // ... (logika stokHargaTersedia yang sudah ada) ...
                                     ->get();
         $today = Carbon::now(config('app.timezone'))->format('Y-m-d');
         return view('catat-barang.barang-keluar.edit', compact(
@@ -173,13 +149,12 @@ class BarangKeluarController extends Controller
             'barangs', 
             'tempats',
             'stokHargaTersedia',
-            'today' // Tambahkan today
+            'today'
         ));
     }
 
     public function update(Request $request, BarangKeluar $barangKeluar)
     {
-        // 1. Validasi input dasar (mirip dengan store)
         $validatedData = $request->validate([
             'barang_kode' => 'required|string|exists:barang,kode',
             'harga' => 'required|numeric|min:0',
@@ -189,8 +164,6 @@ class BarangKeluarController extends Controller
             'keterangan' => 'nullable|string',
         ]);
 
-        // 2. Validasi stok tambahan untuk data BARU yang diinput
-        // Kita perlu cek apakah stok cukup jika barang/harga diubah, atau jika qty diubah
         $stokUntukHargaBaru = Stok::where('barang_kode', $request->barang_kode)
                                     ->where('harga', $request->harga)
                                     ->first();
@@ -200,13 +173,13 @@ class BarangKeluarController extends Controller
 
         // Jika barang_kode atau harga diubah, maka qty lama harus dikembalikan dulu ke stok lama
         // dan qty baru diambil dari stok baru.
-        // Jika barang_kode dan harga tidak berubah, maka kita hanya perlu menghitung selisih qty.
+        // Jika barang_kode dan harga tidak berubah, maka hanya perlu menghitung selisih qty.
         $qtyNetChange = $qtyDiminta;
         if ($barangKeluar->barang_kode == $request->barang_kode && $barangKeluar->harga == $request->harga) {
             // Barang dan harga tidak berubah, hitung selisihnya
             $qtyNetChange = $qtyDiminta - $barangKeluar->qty;
-            // Jika qtyNetChange positif, berarti kita mengambil lebih banyak dari sebelumnya
-            // Jika negatif, berarti kita mengambil lebih sedikit (mengembalikan ke stok)
+            // Jika qtyNetChange positif, berarti mengambil lebih banyak dari sebelumnya
+            // Jika negatif, berarti mengambil lebih sedikit (mengembalikan ke stok)
         }
         
         // Stok yang dibutuhkan untuk perubahan bersih (jika mengambil lebih banyak)
@@ -221,16 +194,14 @@ class BarangKeluarController extends Controller
             ])->withInput();
         }
 
-
-        // 3. Lakukan operasi dalam transaksi database
         DB::transaction(function () use ($request, $barangKeluar, $stokUntukHargaBaru, $qtyDiminta) {
             
-            // a. Simpan data LAMA dari barangKeluar sebelum diupdate
+            // Simpan data LAMA dari barangKeluar sebelum diupdate
             $oldBarangKode = $barangKeluar->barang_kode;
             $oldHarga = $barangKeluar->harga;
             $oldQty = $barangKeluar->qty;
 
-            // b. Kembalikan stok LAMA
+            // Kembalikan stok LAMA
             // Cari stok lama berdasarkan barang_kode dan harga lama
             $stokLama = Stok::where('barang_kode', $oldBarangKode)
                             ->where('harga', $oldHarga)
@@ -240,8 +211,7 @@ class BarangKeluarController extends Controller
                 $stokLama->jumlah += $oldQty; // Tambahkan kembali qty lama ke stok
                 $stokLama->save();
             } else {
-                // Seharusnya ini tidak terjadi jika data konsisten,
-                // tapi sebagai fallback, buat record stok baru dengan qty lama (dikembalikan)
+                // Fallback buat record stok baru dengan qty lama (dikembalikan)
                 Stok::create([
                     'barang_kode' => $oldBarangKode,
                     'harga' => $oldHarga,
@@ -249,11 +219,10 @@ class BarangKeluarController extends Controller
                 ]);
             }
 
-            // c. Update record barang_keluar dengan data baru
+            // Update record barang_keluar dengan data baru
             $barangKeluar->update([
                 'barang_kode' => $request->barang_kode,
                 'tempat_id' => $request->tempat_id,
-                // user_id biasanya tidak diubah saat edit, kecuali ada kebutuhan
                 'tanggal' => $request->tanggal,
                 'qty' => $qtyDiminta,
                 'harga' => $request->harga,
@@ -261,47 +230,34 @@ class BarangKeluarController extends Controller
                 'keterangan' => $request->keterangan,
             ]);
 
-            // d. Kurangi stok BARU berdasarkan data yang baru diinput
-            // Kita sudah punya $stokUntukHargaBaru dari validasi, atau kita query lagi untuk keamanan
+            // Kurangi stok BARU berdasarkan data yang baru diinput
             $stokTargetPengurangan = Stok::where('barang_kode', $request->barang_kode)
                                         ->where('harga', $request->harga)
                                         ->first();
             
-            // Seharusnya $stokTargetPengurangan ada karena sudah divalidasi ketersediaannya,
-            // atau jika belum ada (kasus aneh), maka validasi di atas akan gagal.
-            // Namun untuk lebih aman:
             if ($stokTargetPengurangan) {
                 $stokTargetPengurangan->jumlah -= $qtyDiminta;
-                if ($stokTargetPengurangan->jumlah < 0) $stokTargetPengurangan->jumlah = 0; // Pencegahan
+                if ($stokTargetPengurangan->jumlah < 0) $stokTargetPengurangan->jumlah = 0; 
                 $stokTargetPengurangan->save();
-            } else {
-                // Ini adalah kondisi error yang seharusnya tidak tercapai jika validasi stok benar
-                // Mungkin lempar exception atau tangani error karena stok tiba-tiba hilang
-                // Untuk sekarang, ini akan menyebabkan error di DB jika mencoba mengurangi dari null
-                // tapi validasi sebelumnya harus mencegah ini.
-                // Jika kita sampai di sini, berarti ada masalah logika yang lebih dalam.
-            }
+            } 
         });
 
-        // 4. Redirect dengan pesan sukses
         return redirect()->route('barang-keluar.index')
                         ->with('success', 'Data barang keluar berhasil diperbarui.');
     }
 
     public function destroy(BarangKeluar $barangKeluar)
     {
-        // 1. Lakukan operasi dalam transaksi database
         DB::transaction(function () use ($barangKeluar) {
-            // a. Simpan informasi dari barangKeluar yang akan dihapus
+            // Simpan informasi dari barangKeluar yang akan dihapus
             $barangKodeDihapus = $barangKeluar->barang_kode;
             $hargaDihapus = $barangKeluar->harga;
             $qtyDihapus = $barangKeluar->qty;
 
-            // b. Hapus record dari tabel barang_keluar
+            // Hapus record dari tabel barang_keluar
             $barangKeluar->delete();
 
-            // c. Kembalikan (tambah) stok ke tabel stok
-            //    Cari record stok yang sesuai dengan barang_kode dan harga dari transaksi yang dihapus
+            // Kembalikan (tambah) stok ke tabel stok
             $stokTerkait = Stok::where('barang_kode', $barangKodeDihapus)
                                 ->where('harga', $hargaDihapus)
                                 ->first();
@@ -311,10 +267,7 @@ class BarangKeluarController extends Controller
                 $stokTerkait->jumlah += $qtyDihapus;
                 $stokTerkait->save();
             } else {
-                // Kondisi ini idealnya tidak terjadi jika data konsisten.
-                // Artinya, barang dikeluarkan dari stok yang tidak tercatat (atau record stoknya terhapus).
-                // Sebagai fallback, kita bisa membuat record stok baru dengan jumlah yang dikembalikan.
-                // Ini membantu menjaga data stok tetap ada meskipun mungkin ada anomali sebelumnya.
+                // Jika stok tidak ditemukan, buat record baru untuk mengembalikan stok.
                 Stok::create([
                     'barang_kode' => $barangKodeDihapus,
                     'harga' => $hargaDihapus,
@@ -323,7 +276,7 @@ class BarangKeluarController extends Controller
             }
         });
 
-        // 2. Redirect dengan pesan sukses
+        // Redirect dengan pesan sukses
         return redirect()->route('barang-keluar.index')
                         ->with('success', 'Data barang keluar berhasil dihapus dan stok telah dikembalikan.');
     }

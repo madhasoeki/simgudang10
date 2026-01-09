@@ -47,7 +47,7 @@
                     <th>Qty</th>
                     <th>Harga</th>
                     <th>Jumlah</th>
-                    <th>Tempat Tujuan</th>
+                    <th>Tujuan</th>
                     <th>Keterangan</th>
                     <th>Aksi</th>
                 </tr>
@@ -140,16 +140,16 @@ $(document).ready(function() {
             }
         },
         columns: [
-            { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false, className: 'text-center' },
+            { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false, className: 'text-center', width: '10px' }, // No tengahkan
             { data: 'tanggal', name: 'barang_keluar.tanggal' },
-            { data: 'kode_barang', name: 'barang.kode' },
+            { data: 'kode_barang', name: 'barang.kode', width: '90px' }, // Kode Barang dengan lebar tetap
             { data: 'nama_barang', name: 'barang.nama' },
             { data: 'qty', name: 'qty', className: 'text-center' },
             { data: 'harga', name: 'harga', className: 'text-right' },
             { data: 'jumlah', name: 'jumlah', className: 'text-right' },
             { data: 'nama_tempat', name: 'tempat.nama' },
             { data: 'keterangan', name: 'barang_keluar.keterangan' },
-            { data: 'action', name: 'action', orderable: false, searchable: false, className: 'text-center' }
+            { data: 'action', name: 'action', orderable: false, searchable: false, className: 'text-center', width: '150px' } // Aksi dengan lebar tetap
         ],
         dom:  '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6 d-flex justify-content-md-end"fB>>' + 
               '<"row"<"col-sm-12"tr>>' +
