@@ -109,3 +109,13 @@ Route::middleware(['auth'])->group(function () {
         Route::get('history', [HistoryController::class, 'index'])->name('history.index');
     });
 });
+
+// Route untuk cron job (tidak perlu auth)
+Route::get('/cron/run', function () {
+    \Illuminate\Support\Facades\Artisan::call('schedule:run');
+    return response()->json([
+        'status' => 'success',
+        'message' => 'Scheduled tasks executed',
+        'time' => now()->toDateTimeString()
+    ]);
+});
