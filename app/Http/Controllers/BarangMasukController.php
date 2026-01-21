@@ -40,6 +40,9 @@ class BarangMasukController extends Controller
             $query->whereBetween('barang_masuk.tanggal', [$startDate, $endDate]);
         }
 
+        $query->orderBy('barang_masuk.tanggal', 'desc')
+              ->orderBy('barang_masuk.id', 'desc');
+
         return DataTables::of($query)
             ->addIndexColumn()
             ->editColumn('tanggal', function ($row) {
