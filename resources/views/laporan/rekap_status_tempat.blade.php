@@ -24,14 +24,6 @@
                                 <i class="fa fa-caret-down"></i>
                             </button>
                         </div>
-                        <div class="col-md text-md-right">
-                            <form id="form-refresh-rekap" action="{{ route('laporan.rekap-status-tempat.refresh') }}" method="POST" class="d-inline-block">
-                                @csrf
-                                <button type="submit" class="btn btn-primary">
-                                    <i class="fa fa-sync"></i> Refresh Rekap
-                                </button>
-                            </form>
-                        </div>
                     </div>
 
                     <table class="table table-hover table-bordered table-stripped" id="rekap-status-table" style="width:100%;">

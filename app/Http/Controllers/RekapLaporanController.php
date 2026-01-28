@@ -6,7 +6,6 @@ use Illuminate\Http\Request;
 use App\Models\StatusTempat;
 use App\Models\Tempat;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
 use Yajra\DataTables\Facades\DataTables;
 use Illuminate\Support\Facades\Log;
@@ -16,9 +15,9 @@ class RekapLaporanController extends Controller
 {
     public function index()
     {
-        // Tidak perlu mengirim $tempats karena filter tempat tidak ada di halaman ini (berdasarkan deskripsi awal)
-        // Jika nanti diperlukan filter per tempat di halaman rekap, baru kita tambahkan.
-        return view('laporan.rekap_status_tempat'); // Kita akan buat view ini
+        // Data akan otomatis terupdate melalui event-driven system
+        // Setiap transaksi barang keluar akan otomatis trigger kalkulasi status tempat
+        return view('laporan.rekap_status_tempat');
     }
 
     public function data(Request $request)
@@ -76,17 +75,6 @@ class RekapLaporanController extends Controller
                 })
                 ->rawColumns(['status', 'action', 'total'])
                 ->make(true);
-        }
-    }
-
-    public function refresh()
-    {
-        try {
-            Artisan::call('statustempat:generate');
-            return redirect()->route('laporan.rekap-status-tempat.index')->with('success', 'Data rekap status tempat berhasil disegarkan!');
-        } catch (\Exception $e) {
-            Log::error('Error refreshing rekap status tempat: ' . $e->getMessage() . ' Trace: ' . $e->getTraceAsString());
-            return redirect()->route('laporan.rekap-status-tempat.index')->with('error', 'Gagal menyegarkan data rekap: ' . $e->getMessage());
         }
     }
 

@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
@@ -106,17 +105,6 @@ class OpnameController extends Controller
                 })
                 ->rawColumns(['total_lapangan', 'keterangan', 'selisih', 'actions'])
                 ->make(true);
-        }
-    }
-
-    public function refresh()
-    {
-        try {
-            Artisan::call('opname:generate');
-            return redirect()->route('opname.index')->with('success', 'Data opname berhasil disegarkan!');
-        } catch (\Exception $e) {
-            Log::error('Error refreshing opname data: ' . $e->getMessage() . ' Trace: ' . $e->getTraceAsString());
-            return redirect()->route('opname.index')->with('error', 'Gagal menyegarkan data: ' . $e->getMessage());
         }
     }
 

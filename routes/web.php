@@ -68,9 +68,6 @@ Route::middleware(['auth'])->group(function () {
         // Route untuk mengambil data via AJAX untuk DataTables
         Route::get('/data', [OpnameController::class, 'data'])->name('data');
 
-        // Menjalankan command refresh data secara manual
-        Route::post('/refresh', [OpnameController::class, 'refresh'])->name('refresh');
-
         // Menyimpan data lapangan dan keterangan yang diinput user
         Route::put('/update/{opname}', [OpnameController::class, 'update'])->name('update');
 
@@ -94,7 +91,6 @@ Route::middleware(['auth'])->group(function () {
         // Route untuk Rekap Laporan
         Route::get('/rekap-status-tempat', [RekapLaporanController::class, 'index'])->name('rekap-status-tempat.index');
         Route::get('/rekap-status-tempat/data', [RekapLaporanController::class, 'data'])->name('rekap-status-tempat.data');
-        Route::post('/rekap-status-tempat/refresh', [RekapLaporanController::class, 'refresh'])->name('rekap-status-tempat.refresh');
         Route::post('/rekap-status-tempat/toggle-status/{statusTempat}', [RekapLaporanController::class, 'toggleStatus'])->name('rekap-status-tempat.toggle-status');
     });
 

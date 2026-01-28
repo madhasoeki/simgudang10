@@ -8,26 +8,14 @@ use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 class Kernel extends ConsoleKernel
 {
     /**
-     * The commands for the application.
-     *
-     * @var array
-     */
-    protected $commands = [
-        // Daftarkan commandmu di sini jika perlu, tapi untuk scheduling tidak wajib
-        Commands\GenerateOpnameReport::class,
-        Commands\GenerateStatusTempatReport::class,
-    ];
-
-    /**
      * Define the application's command schedule.
      */
     protected function schedule(Schedule $schedule): void
     {
         // $schedule->command('inspire')->hourly();
 
-        // Tambahkan baris ini
-        $schedule->command('opname:generate')->daily()->at('01:00');
-        $schedule->command('statustempat:generate')->daily()->at('01:30');
+        // Event-driven system handles all calculations automatically
+        // No scheduled commands needed
     }
 
     /**

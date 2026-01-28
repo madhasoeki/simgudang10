@@ -24,18 +24,6 @@
                                 <i class="fa fa-caret-down"></i>
                             </button>
                         </div>
-                        <div class="col-md text-md-right">
-                            <div class="btn-toolbar" role="toolbar" style="justify-content: flex-end;">
-                                <div class="btn-group" role="group">
-                                     <form id="form-refresh" action="{{ route('opname.refresh') }}" method="POST">
-                                        @csrf
-                                        <button type="submit" class="btn btn-primary">
-                                            <i class="fa fa-sync"></i> Segarkan Data
-                                        </button>
-                                    </form>
-                                </div>
-                            </div>
-                        </div>
                     </div>
 
                     <table class="table table-hover table-bordered table-stripped" id="opname-table" style="width:100%;">

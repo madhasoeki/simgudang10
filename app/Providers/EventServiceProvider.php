@@ -6,6 +6,10 @@ use Illuminate\Auth\Events\Registered;
 use Illuminate\Auth\Listeners\SendEmailVerificationNotification;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\Event;
+use App\Models\BarangMasuk;
+use App\Models\BarangKeluar;
+use App\Observers\BarangMasukObserver;
+use App\Observers\BarangKeluarObserver;
 
 class EventServiceProvider extends ServiceProvider
 {
@@ -25,7 +29,9 @@ class EventServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Register observers untuk event-driven calculation
+        BarangMasuk::observe(BarangMasukObserver::class);
+        BarangKeluar::observe(BarangKeluarObserver::class);
     }
 
     /**
