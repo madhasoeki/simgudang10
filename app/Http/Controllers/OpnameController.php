@@ -2,15 +2,16 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Auth;
-use Carbon\Carbon;
 use App\Models\Opname;
 use App\Models\Stok;
-use Yajra\DataTables\Facades\DataTables;
+use App\Support\ReportingPeriod;
+use Carbon\Carbon;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-
+use Yajra\DataTables\Facades\DataTables;
 
 class OpnameController extends Controller
 {
@@ -27,13 +28,10 @@ class OpnameController extends Controller
             if ($request->filled('start_date') && $request->filled('end_date')) {
                 $startDate = Carbon::parse($request->start_date)->startOfDay();
                 $endDate = Carbon::parse($request->end_date)->endOfDay();
-                $query->where(function ($q) use ($startDate, $endDate) {
-                    $q->where('periode_awal', '<=', $endDate)
-                        ->where('periode_akhir', '>=', $startDate);
-                });
+                ReportingPeriod::applyOverlapFilter($query, 'periode_awal', 'periode_akhir', $startDate, $endDate);
             }
 
-            return Datatables::of($query)
+            return DataTables::of($query)
                 ->addIndexColumn()
                 ->editColumn('total_lapangan', function ($row) {
                     $opnameId = $row->id;
@@ -41,6 +39,7 @@ class OpnameController extends Controller
                     if ($row->approved) {
                         return $currentValue;
                     }
+
                     // data-original-value digunakan oleh JS untuk reset jika batal edit
                     return "<div class='editable-cell' data-opname-id='{$opnameId}' data-field='total_lapangan' data-original-value='{$currentValue}'>
                                 <span class='editable-text'>{$currentValue}</span>
@@ -53,122 +52,98 @@ class OpnameController extends Controller
                     if ($row->approved) {
                         return $currentValue ?: '-';
                     }
+
                     return "<div class='editable-cell' data-opname-id='{$opnameId}' data-field='keterangan' data-original-value='{$currentValue}'>
-                                <span class='editable-text'>" . ($currentValue ?: '-') . "</span>
+                                <span class='editable-text'>".($currentValue ?: '-')."</span>
                                 <input type='text' class='form-control form-control-sm editable-input' value='{$currentValue}' style='display:none;'>
                             </div>";
                 })
                 ->editColumn('selisih', function ($row) {
-                    $currentSelisih = 0; 
-                    if (!is_null($row->total_lapangan)) {
-                        $currentSelisih = $row->total_lapangan - $row->stock_total;
-                    } else if ($row->total_lapangan === 0 && $row->stock_total != 0) {
-                        // Jika lapangan belum diisi (null dari DB, atau 0 dari input) dan sistem ada stok, selisihnya adalah minus stok sistem
-                         $currentSelisih = -$row->stock_total;
+                    if (is_null($row->total_lapangan)) {
+                        return '<span class="badge badge-secondary">-</span>';
                     }
 
-                    $badge_class = 'secondary';
-                    if (!is_null($row->total_lapangan)) { // Hanya beri warna jika total_lapangan sudah ada (bukan null)
-                        if ($currentSelisih == 0) {
-                            $badge_class = 'primary'; // Netral
-                        } elseif ($currentSelisih > 0) { // Lapangan lebih banyak (surplus)
-                            $badge_class = 'success';
-                        } else { // Lapangan lebih sedikit (minus)
-                            $badge_class = 'danger';
-                        }
-                        return '<span class="badge badge-' . $badge_class . '">' . $currentSelisih . '</span>';
+                    $currentSelisih = (int) $row->total_lapangan - (int) $row->stock_total;
+                    $badgeClass = 'primary';
+                    if ($currentSelisih > 0) {
+                        $badgeClass = 'success';
+                    } elseif ($currentSelisih < 0) {
+                        $badgeClass = 'danger';
                     }
-                    return '<span class="badge badge-secondary">-</span>'; // Default jika total_lapangan masih null
+
+                    return '<span class="badge badge-'.$badgeClass.'">'.$currentSelisih.'</span>';
                 })
                 ->addColumn('actions', function ($row) {
-                    $opnameId = $row->id;
-                    $buttons = '';
-
-                    if (!$row->approved) {
-                        $buttons .= "<button type='button' class='btn btn-xs btn-info btn-edit-row mr-1' data-opname-id='{$opnameId}' title='Edit Data Lapangan & Keterangan'><i class='fa fa-pencil-alt'></i></button>";
-                        $buttons .= "<button type='button' class='btn btn-xs btn-primary btn-save-row mr-1' data-opname-id='{$opnameId}' title='Simpan Perubahan' style='display:none;'><i class='fa fa-save'></i></button>";
-                        $buttons .= "<button type='button' class='btn btn-xs btn-secondary btn-cancel-row mr-1' data-opname-id='{$opnameId}' title='Batal Edit' style='display:none;'><i class='fa fa-times'></i></button>";
-
-                        if (Auth::check() && Auth::user()->can('approve opname')) {
-                            $approveUrl = route('opname.approve', $opnameId);
-                            $csrf = csrf_field();
-                            $buttons .= "
-                                <form id='form-approve-{$opnameId}' action='{$approveUrl}' method='POST' class='d-inline btn-approve-form'>
-                                    {$csrf}
-                                    <button type='submit' class='btn btn-success btn-sm btn-confirm-approve' data-opname-id='{$opnameId}' title='Approve Opname'><i class='fa fa-check'></i> Approve</button>
-                                </form>";
-                        }
-                    } else {
-                        return '<span class="badge badge-success">Approved at: ' . ($row->approved_at ? Carbon::parse($row->approved_at)->format('d M Y H:i') : 'N/A') . '</span>';
+                    if (! $row->approved) {
+                        return $this->buildEditableActionsColumn($row);
                     }
-                    return $buttons;
+
+                    return '<span class="badge badge-success">Approved at: '.($row->approved_at ? Carbon::parse($row->approved_at)->format('d M Y H:i') : 'N/A').'</span>';
                 })
                 ->rawColumns(['total_lapangan', 'keterangan', 'selisih', 'actions'])
                 ->make(true);
         }
+
+        return response()->json(['message' => 'Invalid request.'], 400);
     }
 
     public function update(Request $request, Opname $opname)
     {
-        $validatedData = $request->validate([
-            'total_lapangan' => 'required|integer|min:0',
-            'keterangan' => 'nullable|string|max:255',
-        ]);
+        $validatedData = $request->validate($this->rules());
 
         if ($opname->approved) {
             return redirect()->route('opname.index')->with('error', 'Data yang sudah diapprove tidak bisa diubah.');
         }
 
-        $selisih = $validatedData['total_lapangan'] - $opname->stock_total; // Lapangan - Sistem
-
-        if ($selisih != 0 && empty($validatedData['keterangan'])) {
-             // Kondisi ini memastikan bahwa jika total_lapangan adalah 0 dan stock_total juga 0 (selisih 0), keterangan tidak wajib.
-             // Atau jika total_lapangan bukan 0 tapi ada selisih, keterangan jadi wajib.
-            if (!($validatedData['total_lapangan'] == 0 && $opname->stock_total == 0)) {
-                 return redirect()->back()
-                        ->withInput($request->except('keterangan'))
-                        ->with('error', 'Keterangan wajib diisi jika Stok Lapangan berbeda dengan Stok Sistem untuk barang ' . $opname->barang->nama . '.');
-            }
+        $keteranganValidation = $this->validateKeteranganForDifference(
+            $request,
+            $opname,
+            (int) $validatedData['total_lapangan'],
+            $validatedData['keterangan'] ?? null,
+            ''
+        );
+        if ($keteranganValidation) {
+            return $keteranganValidation;
         }
 
-        $opname->total_lapangan = $validatedData['total_lapangan'];
-        $opname->keterangan = $validatedData['keterangan'];
-        $opname->selisih = $selisih;
+        $opname->total_lapangan = (int) $validatedData['total_lapangan'];
+        $opname->keterangan = $validatedData['keterangan'] ?? null;
+        $opname->selisih = $this->calculateDifference((int) $validatedData['total_lapangan'], (int) $opname->stock_total);
         $opname->save();
 
-        // Jika request datang dari AJAX (untuk save inline), kembalikan JSON
         if ($request->ajax()) {
-            return response()->json(['message' => 'Data opname untuk ' . $opname->barang->nama . ' berhasil disimpan.']);
+            return response()->json(['message' => 'Data opname untuk '.$opname->barang->nama.' berhasil disimpan.']);
         }
-        return redirect()->route('opname.index')->with('success', 'Data opname untuk ' . $opname->barang->nama . ' berhasil disimpan.');
+
+        return redirect()->route('opname.index')->with('success', 'Data opname untuk '.$opname->barang->nama.' berhasil disimpan.');
     }
 
     public function approve(Request $request, Opname $opname)
     {
-        $validatedData = $request->validate([
-            'total_lapangan' => 'required|integer|min:0',
-            'keterangan' => 'nullable|string|max:255',
-        ]);
+        $validatedData = $request->validate($this->rules());
 
         if ($opname->approved) {
             return redirect()->route('opname.index')->with('error', 'Data ini sudah pernah diapprove.');
         }
 
-        $opname->total_lapangan = $validatedData['total_lapangan'];
-        $opname->keterangan = $validatedData['keterangan'];
-        $opname->selisih = $validatedData['total_lapangan'] - $opname->stock_total; // Lapangan - Sistem
-
-        if ($opname->selisih != 0 && empty($opname->keterangan)) {
-            if (!($opname->total_lapangan == 0 && $opname->stock_total == 0)) {
-                return redirect()->back()
-                    ->withInput($request->except('keterangan'))
-                    ->with('error', 'Keterangan wajib diisi jika Stok Lapangan berbeda dengan Stok Sistem untuk barang ' . $opname->barang->nama . ' sebelum approve.');
-            }
+        $keteranganValidation = $this->validateKeteranganForDifference(
+            $request,
+            $opname,
+            (int) $validatedData['total_lapangan'],
+            $validatedData['keterangan'] ?? null,
+            ' sebelum approve'
+        );
+        if ($keteranganValidation) {
+            return $keteranganValidation;
         }
+
+        $opname->total_lapangan = (int) $validatedData['total_lapangan'];
+        $opname->keterangan = $validatedData['keterangan'] ?? null;
+        $opname->selisih = $this->calculateDifference((int) $validatedData['total_lapangan'], (int) $opname->stock_total);
         $opname->save();
 
         if (is_null($opname->total_lapangan)) {
-            return redirect()->back()->with('error', 'Data lapangan harus diisi sebelum melakukan approval untuk ' . $opname->barang->nama);
+            return redirect()->back()->with('error', 'Data lapangan harus diisi sebelum melakukan approval untuk '.$opname->barang->nama);
         }
 
         DB::beginTransaction();
@@ -179,52 +154,98 @@ class OpnameController extends Controller
                 'approved_at' => now(),
             ]);
             DB::commit();
-            return redirect()->route('opname.index')->with('success', 'Opname untuk ' . $opname->barang->nama . ' berhasil diapprove.');
-        } catch (\Exception $e) {
+
+            return redirect()->route('opname.index')->with('success', 'Opname untuk '.$opname->barang->nama.' berhasil diapprove.');
+        } catch (\Throwable $e) {
             DB::rollBack();
-            Log::error('Error approving opname: ' . $e->getMessage() . ' Trace: ' . $e->getTraceAsString());
-            return redirect()->route('opname.index')->with('error', 'Approval gagal: ' . $e->getMessage());
+            Log::error('Error approving opname.', [
+                'opname_id' => $opname->id,
+                'barang_kode' => $opname->barang_kode,
+                'error' => $e->getMessage(),
+            ]);
+
+            return redirect()->route('opname.index')->with('error', 'Approval gagal: '.$e->getMessage());
+        }
+    }
+
+    public function cancelApproval(Opname $opname): RedirectResponse
+    {
+        if (! $opname->approved) {
+            return redirect()->route('opname.index')->with('error', 'Data ini belum diapprove.');
+        }
+
+        DB::beginTransaction();
+        try {
+            $this->reverseStockAdjustment($opname);
+            $opname->update([
+                'approved' => false,
+                'approved_at' => null,
+            ]);
+            DB::commit();
+
+            return redirect()->route('opname.index')->with('success', 'Approval opname berhasil dibatalkan untuk '.($opname->barang->nama ?? $opname->barang_kode).'.');
+        } catch (\Throwable $exception) {
+            DB::rollBack();
+            Log::error('Error canceling opname approval.', [
+                'opname_id' => $opname->id,
+                'barang_kode' => $opname->barang_kode,
+                'error' => $exception->getMessage(),
+            ]);
+
+            return redirect()->route('opname.index')->with('error', 'Pembatalan approval gagal: '.$exception->getMessage());
         }
     }
 
     private function adjustStock(Opname $opname)
     {
-        $selisih = $opname->selisih; // selisih = Lapangan - Sistem
-        if ($selisih == 0) return;
+        $selisih = (int) $opname->selisih;
+        if ($selisih === 0) {
+            return;
+        }
 
-        $stoks = Stok::where('barang_kode', $opname->barang_kode)
-            ->where('jumlah', '>', 0) // Hanya ambil stok yang ada jumlahnya untuk disesuaikan
-            ->orderBy('harga', 'asc')
-            ->get();
-
-
-        if ($selisih > 0) { // Lapangan > Sistem, perlu MENAMBAH stok di sistem
-            $this->increaseStock($opname, $selisih); 
-        } else { // Lapangan < Sistem, perlu MENGURANGI stok di sistem
+        if ($selisih > 0) {
+            $this->increaseStock($opname, $selisih);
+        } else {
             $this->decreaseStock($opname, abs($selisih));
         }
     }
-    
-    private function decreaseStock(Opname $opname, $jumlahPengurangan) {
+
+    private function reverseStockAdjustment(Opname $opname): void
+    {
+        $selisih = (int) $opname->selisih;
+        if ($selisih === 0) {
+            return;
+        }
+
+        if ($selisih > 0) {
+            $this->decreaseStock($opname, $selisih);
+        } else {
+            $this->increaseStock($opname, abs($selisih));
+        }
+    }
+
+    private function decreaseStock(Opname $opname, int $jumlahPengurangan): void
+    {
         $stoksToUpdate = Stok::where('barang_kode', $opname->barang_kode)
             ->where('jumlah', '>', 0)
             ->orderBy('harga', 'asc')
             ->get();
 
         $sisaPengurangan = $jumlahPengurangan;
-        foreach($stoksToUpdate as $stok) {
-            if ($sisaPengurangan <= 0) break;
-            
+        foreach ($stoksToUpdate as $stok) {
+            if ($sisaPengurangan <= 0) {
+                break;
+            }
 
             $jumlahDapatDikurangi = min($stok->jumlah, $sisaPengurangan);
             $stok->jumlah -= $jumlahDapatDikurangi;
-            $stok->save(); 
+            $stok->save();
             $sisaPengurangan -= $jumlahDapatDikurangi;
-
         }
     }
 
-    private function increaseStock(Opname $opname, $jumlahPenambahan) {
+    private function increaseStock(Opname $opname, int $jumlahPenambahan): void
+    {
         $stoksToUpdate = Stok::where('barang_kode', $opname->barang_kode)
             ->orderBy('harga', 'asc')
             ->get();
@@ -234,9 +255,58 @@ class OpnameController extends Controller
 
             $stokTermurah->jumlah += $jumlahPenambahan;
             $stokTermurah->save();
-            
         } else {
             Log::warning("Tidak ada entri harga di tabel stok untuk barang_kode: {$opname->barang_kode} saat mencoba menambah stok opname.");
         }
+    }
+
+    private function rules(): array
+    {
+        return [
+            'total_lapangan' => 'required|integer|min:0',
+            'keterangan' => 'nullable|string|max:255',
+        ];
+    }
+
+    private function calculateDifference(int $totalLapangan, int $stockTotal): int
+    {
+        return $totalLapangan - $stockTotal;
+    }
+
+    private function validateKeteranganForDifference(
+        Request $request,
+        Opname $opname,
+        int $totalLapangan,
+        ?string $keterangan,
+        string $messageSuffix
+    ): ?RedirectResponse {
+        $selisih = $this->calculateDifference($totalLapangan, (int) $opname->stock_total);
+        if ($selisih !== 0 && empty($keterangan) && ! ($totalLapangan === 0 && (int) $opname->stock_total === 0)) {
+            return redirect()->back()
+                ->withInput($request->except('keterangan'))
+                ->with('error', 'Keterangan wajib diisi jika Stok Lapangan berbeda dengan Stok Sistem untuk barang '.$opname->barang->nama.$messageSuffix.'.');
+        }
+
+        return null;
+    }
+
+    private function buildEditableActionsColumn(Opname $row): string
+    {
+        $opnameId = $row->id;
+        $buttons = "<button type='button' class='btn btn-xs btn-info btn-edit-row mr-1' data-opname-id='{$opnameId}' title='Edit Data Lapangan & Keterangan'><i class='fa fa-pencil-alt'></i></button>";
+        $buttons .= "<button type='button' class='btn btn-xs btn-primary btn-save-row mr-1' data-opname-id='{$opnameId}' title='Simpan Perubahan' style='display:none;'><i class='fa fa-save'></i></button>";
+        $buttons .= "<button type='button' class='btn btn-xs btn-secondary btn-cancel-row mr-1' data-opname-id='{$opnameId}' title='Batal Edit' style='display:none;'><i class='fa fa-times'></i></button>";
+
+        if (Auth::check() && Auth::user()->can('approve opname')) {
+            $approveUrl = route('opname.approve', $opnameId);
+            $csrf = csrf_field();
+            $buttons .= "
+                <form id='form-approve-{$opnameId}' action='{$approveUrl}' method='POST' class='d-inline btn-approve-form'>
+                    {$csrf}
+                    <button type='submit' class='btn btn-success btn-sm btn-confirm-approve' data-opname-id='{$opnameId}' title='Approve Opname'><i class='fa fa-check'></i> Approve</button>
+                </form>";
+        }
+
+        return $buttons;
     }
 }

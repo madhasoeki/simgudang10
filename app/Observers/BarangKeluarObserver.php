@@ -2,99 +2,102 @@
 
 namespace App\Observers;
 
-use App\Models\BarangKeluar;
 use App\Jobs\CalculateOpnameJob;
 use App\Jobs\CalculateStatusTempatJob;
+use App\Models\BarangKeluar;
 use Illuminate\Support\Facades\Log;
 
 class BarangKeluarObserver
 {
+    private const CALCULATION_QUEUE = 'calculations';
+
+    private const DISPATCH_DELAY_SECONDS = 5;
+
     /**
      * Handle the BarangKeluar "created" event.
      */
-    public function created(BarangKeluar $barangKeluar)
+    public function created(BarangKeluar $barangKeluar): void
     {
-        // Dispatch job untuk kalkulasi opname barang terkait
-        CalculateOpnameJob::dispatch($barangKeluar->barang_kode)
-            ->delay(now()->addSeconds(5))
-            ->onQueue('calculations');
+        $this->dispatchOpname($barangKeluar->barang_kode);
+        $this->dispatchStatusTempatIfPresent($barangKeluar->tempat_id);
 
-        // Dispatch job untuk kalkulasi status tempat terkait
-        if ($barangKeluar->tempat_id) {
-            CalculateStatusTempatJob::dispatch($barangKeluar->tempat_id)
-                ->delay(now()->addSeconds(5))
-                ->onQueue('calculations');
-        }
-
-        Log::info("Job kalkulasi opname & status tempat di-dispatch untuk barang {$barangKeluar->barang_kode} dan tempat {$barangKeluar->tempat_id} (dari barang keluar created)");
+        Log::info('Job kalkulasi opname & status tempat di-dispatch (barang keluar created).', [
+            'barang_kode' => $barangKeluar->barang_kode,
+            'tempat_id' => $barangKeluar->tempat_id,
+        ]);
     }
 
     /**
      * Handle the BarangKeluar "updated" event.
      */
-    public function updated(BarangKeluar $barangKeluar)
+    public function updated(BarangKeluar $barangKeluar): void
     {
-        // Jika barang_kode berubah, kalkulasi kedua barang (lama & baru)
-        if ($barangKeluar->isDirty('barang_kode')) {
-            CalculateOpnameJob::dispatch($barangKeluar->getOriginal('barang_kode'))
-                ->delay(now()->addSeconds(5))
-                ->onQueue('calculations');
-            
-            CalculateOpnameJob::dispatch($barangKeluar->barang_kode)
-                ->delay(now()->addSeconds(5))
-                ->onQueue('calculations');
-        } else {
-            CalculateOpnameJob::dispatch($barangKeluar->barang_kode)
-                ->delay(now()->addSeconds(5))
-                ->onQueue('calculations');
+        $barangCodes = [$barangKeluar->barang_kode];
+        if ($barangKeluar->wasChanged('barang_kode')) {
+            $barangCodes[] = $barangKeluar->getOriginal('barang_kode');
         }
 
-        // Jika tempat_id berubah, kalkulasi kedua tempat (lama & baru)
-        if ($barangKeluar->isDirty('tempat_id')) {
-            $oldTempatId = $barangKeluar->getOriginal('tempat_id');
-            $newTempatId = $barangKeluar->tempat_id;
-            
-            if ($oldTempatId) {
-                CalculateStatusTempatJob::dispatch($oldTempatId)
-                    ->delay(now()->addSeconds(5))
-                    ->onQueue('calculations');
-            }
-            
-            if ($newTempatId) {
-                CalculateStatusTempatJob::dispatch($newTempatId)
-                    ->delay(now()->addSeconds(5))
-                    ->onQueue('calculations');
-            }
-
-            Log::info("Job kalkulasi status tempat di-dispatch untuk tempat {$oldTempatId} dan {$newTempatId} (dari barang keluar updated)");
-        } else {
-            if ($barangKeluar->tempat_id) {
-                CalculateStatusTempatJob::dispatch($barangKeluar->tempat_id)
-                    ->delay(now()->addSeconds(5))
-                    ->onQueue('calculations');
-            }
+        $tempatIds = [$barangKeluar->tempat_id];
+        if ($barangKeluar->wasChanged('tempat_id')) {
+            $tempatIds[] = $barangKeluar->getOriginal('tempat_id');
         }
 
-        Log::info("Job kalkulasi opname & status tempat di-dispatch untuk barang {$barangKeluar->barang_kode} (dari barang keluar updated)");
+        $this->dispatchUniqueOpnames($barangCodes);
+        $this->dispatchUniqueStatusTempat($tempatIds);
+
+        Log::info('Job kalkulasi opname & status tempat di-dispatch (barang keluar updated).', [
+            'barang_kode' => array_values(array_filter(array_unique($barangCodes))),
+            'tempat_id' => array_values(array_filter(array_unique($tempatIds), static fn ($value) => ! is_null($value))),
+        ]);
+    }
+
+    private function dispatchUniqueOpnames(array $barangCodes): void
+    {
+        foreach (array_values(array_filter(array_unique($barangCodes))) as $barangKode) {
+            $this->dispatchOpname($barangKode);
+        }
     }
 
     /**
      * Handle the BarangKeluar "deleted" event.
      */
-    public function deleted(BarangKeluar $barangKeluar)
+    public function deleted(BarangKeluar $barangKeluar): void
     {
-        // Dispatch job untuk kalkulasi opname barang terkait
-        CalculateOpnameJob::dispatch($barangKeluar->barang_kode)
-            ->delay(now()->addSeconds(5))
-            ->onQueue('calculations');
+        $this->dispatchOpname($barangKeluar->barang_kode);
+        $this->dispatchStatusTempatIfPresent($barangKeluar->tempat_id);
 
-        // Dispatch job untuk kalkulasi status tempat terkait
-        if ($barangKeluar->tempat_id) {
-            CalculateStatusTempatJob::dispatch($barangKeluar->tempat_id)
-                ->delay(now()->addSeconds(5))
-                ->onQueue('calculations');
+        Log::info('Job kalkulasi opname & status tempat di-dispatch (barang keluar deleted).', [
+            'barang_kode' => $barangKeluar->barang_kode,
+            'tempat_id' => $barangKeluar->tempat_id,
+        ]);
+    }
+
+    private function dispatchUniqueStatusTempat(array $tempatIds): void
+    {
+        $filtered = array_values(array_filter(array_unique($tempatIds), static fn ($value) => ! is_null($value) && (int) $value > 0));
+        foreach ($filtered as $tempatId) {
+            $this->dispatchStatusTempat((int) $tempatId);
         }
+    }
 
-        Log::info("Job kalkulasi opname & status tempat di-dispatch untuk barang {$barangKeluar->barang_kode} dan tempat {$barangKeluar->tempat_id} (dari barang keluar deleted)");
+    private function dispatchStatusTempatIfPresent(?int $tempatId): void
+    {
+        if ($tempatId) {
+            $this->dispatchStatusTempat($tempatId);
+        }
+    }
+
+    private function dispatchStatusTempat(int $tempatId): void
+    {
+        CalculateStatusTempatJob::dispatch($tempatId)
+            ->delay(now()->addSeconds(self::DISPATCH_DELAY_SECONDS))
+            ->onQueue(self::CALCULATION_QUEUE);
+    }
+
+    private function dispatchOpname(string $barangKode): void
+    {
+        CalculateOpnameJob::dispatch($barangKode)
+            ->delay(now()->addSeconds(self::DISPATCH_DELAY_SECONDS))
+            ->onQueue(self::CALCULATION_QUEUE);
     }
 }

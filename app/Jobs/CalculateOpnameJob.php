@@ -2,16 +2,16 @@
 
 namespace App\Jobs;
 
+use App\Models\Barang;
+use App\Models\BarangKeluar;
+use App\Models\BarangMasuk;
+use App\Models\Opname;
+use App\Support\ReportingPeriod;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use App\Models\Barang;
-use App\Models\BarangMasuk;
-use App\Models\BarangKeluar;
-use App\Models\Opname;
-use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -19,12 +19,12 @@ class CalculateOpnameJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    protected $barangKode;
+    protected string $barangKode;
 
     /**
      * Create a new job instance.
      */
-    public function __construct($barangKode)
+    public function __construct(string $barangKode)
     {
         $this->barangKode = $barangKode;
     }
@@ -32,98 +32,115 @@ class CalculateOpnameJob implements ShouldQueue
     /**
      * Execute the job.
      */
-    public function handle()
+    public function handle(): void
     {
         try {
-            DB::beginTransaction();
+            DB::transaction(function (): void {
+                $barang = Barang::where('kode', $this->barangKode)->first();
+                if (! $barang) {
+                    Log::warning('Barang tidak ditemukan saat kalkulasi opname.', [
+                        'barang_kode' => $this->barangKode,
+                    ]);
 
-            $barang = Barang::where('kode', $this->barangKode)->first();
-            
-            if (!$barang) {
-                Log::warning("Barang dengan kode {$this->barangKode} tidak ditemukan");
-                return;
-            }
+                    return;
+                }
 
-            $today = Carbon::today();
+                $period = ReportingPeriod::resolve();
+                $periodeAwalSaatIni = $period['current_start']->toDateString();
+                $periodeAkhirSaatIni = $period['current_end']->toDateString();
 
-            // Tentukan periode opname saat ini
-            if ($today->day >= 26) {
-                $periodeAwalSaatIni = $today->copy()->day(26);
-                $periodeAkhirSaatIni = $today->copy()->addMonth()->day(25);
-            } else {
-                $periodeAwalSaatIni = $today->copy()->subMonth()->day(26);
-                $periodeAkhirSaatIni = $today->copy()->day(25);
-            }
+                $existingOpname = Opname::where('barang_kode', $this->barangKode)
+                    ->where('periode_awal', $periodeAwalSaatIni)
+                    ->where('periode_akhir', $periodeAkhirSaatIni)
+                    ->first();
 
-            // Periode sebelumnya untuk stok awal
-            $periodeAkhirSebelumnya = $periodeAwalSaatIni->copy()->subDay();
-            $periodeAwalSebelumnya = $periodeAkhirSebelumnya->copy()->day(26)->subMonth();
+                if ($existingOpname && $existingOpname->approved) {
+                    Log::info('Opname sudah approved, kalkulasi dilewati.', [
+                        'barang_kode' => $this->barangKode,
+                        'periode_awal' => $periodeAwalSaatIni,
+                        'periode_akhir' => $periodeAkhirSaatIni,
+                    ]);
 
-            $opnameSebelumnya = Opname::where('barang_kode', $this->barangKode)
-                ->where('periode_awal', $periodeAwalSebelumnya->toDateString())
-                ->where('periode_akhir', $periodeAkhirSebelumnya->toDateString())
-                ->where('approved', true)
-                ->first();
-            
-            $stockAwal = $opnameSebelumnya ? $opnameSebelumnya->total_lapangan : 0;
+                    return;
+                }
 
-            // Hitung total masuk dan keluar untuk periode saat ini
-            $totalMasuk = BarangMasuk::where('barang_kode', $this->barangKode)
-                ->whereBetween('tanggal', [$periodeAwalSaatIni, $periodeAkhirSaatIni])
-                ->sum('qty');
+                $stockAwal = $this->resolveStockAwal($period['previous_start']->toDateString(), $period['previous_end']->toDateString());
+                $totalMasuk = $this->resolveTotalMasuk($periodeAwalSaatIni, $periodeAkhirSaatIni);
+                $totalKeluar = $this->resolveTotalKeluar($periodeAwalSaatIni, $periodeAkhirSaatIni);
+                $stockTotal = $stockAwal + $totalMasuk - $totalKeluar;
 
-            $totalKeluar = BarangKeluar::where('barang_kode', $this->barangKode)
-                ->whereBetween('tanggal', [$periodeAwalSaatIni, $periodeAkhirSaatIni])
-                ->sum('qty');
+                $totalLapangan = $existingOpname ? (int) $existingOpname->total_lapangan : 0;
+                $keterangan = $existingOpname ? $existingOpname->keterangan : null;
 
-            $stockTotal = $stockAwal + $totalMasuk - $totalKeluar;
-
-            // Cek apakah sudah ada opname untuk periode ini
-            $existingOpname = Opname::where('barang_kode', $this->barangKode)
-                ->where('periode_awal', $periodeAwalSaatIni->toDateString())
-                ->where('periode_akhir', $periodeAkhirSaatIni->toDateString())
-                ->first();
-
-            // Hanya update jika belum approved
-            if (!$existingOpname || !$existingOpname->approved) {
                 Opname::updateOrCreate(
                     [
                         'barang_kode' => $this->barangKode,
-                        'periode_awal' => $periodeAwalSaatIni->toDateString(),
-                        'periode_akhir' => $periodeAkhirSaatIni->toDateString(),
+                        'periode_awal' => $periodeAwalSaatIni,
+                        'periode_akhir' => $periodeAkhirSaatIni,
                     ],
                     [
                         'stock_awal' => $stockAwal,
                         'total_masuk' => $totalMasuk,
                         'total_keluar' => $totalKeluar,
                         'stock_total' => $stockTotal,
-                        'total_lapangan' => $existingOpname && !$existingOpname->approved ? $existingOpname->total_lapangan : 0,
-                        'selisih' => $existingOpname && !$existingOpname->approved ? ($stockTotal - $existingOpname->total_lapangan) : ($stockTotal - 0),
-                        'keterangan' => $existingOpname && !$existingOpname->approved ? $existingOpname->keterangan : null,
+                        'total_lapangan' => $totalLapangan,
+                        'selisih' => $totalLapangan - $stockTotal,
+                        'keterangan' => $keterangan,
                     ]
                 );
 
-                Log::info("Opname untuk barang {$this->barangKode} berhasil dikalkulasi (periode: {$periodeAwalSaatIni->toDateString()} - {$periodeAkhirSaatIni->toDateString()})");
-            } else {
-                Log::info("Opname untuk barang {$this->barangKode} sudah approved, tidak perlu dikalkulasi ulang");
-            }
+                Log::info('Opname berhasil dikalkulasi.', [
+                    'barang_kode' => $this->barangKode,
+                    'periode_awal' => $periodeAwalSaatIni,
+                    'periode_akhir' => $periodeAkhirSaatIni,
+                    'stock_awal' => $stockAwal,
+                    'total_masuk' => $totalMasuk,
+                    'total_keluar' => $totalKeluar,
+                    'stock_total' => $stockTotal,
+                ]);
+            });
+        } catch (\Throwable $exception) {
+            Log::error('Kalkulasi opname gagal.', [
+                'barang_kode' => $this->barangKode,
+                'error' => $exception->getMessage(),
+            ]);
 
-            DB::commit();
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error("Error calculating opname untuk barang {$this->barangKode}: " . $e->getMessage());
-            throw $e;
+            throw $exception;
         }
+    }
+
+    private function resolveStockAwal(string $periodeAwalSebelumnya, string $periodeAkhirSebelumnya): int
+    {
+        $opnameSebelumnya = Opname::where('barang_kode', $this->barangKode)
+            ->where('periode_awal', $periodeAwalSebelumnya)
+            ->where('periode_akhir', $periodeAkhirSebelumnya)
+            ->where('approved', true)
+            ->first();
+
+        return $opnameSebelumnya ? (int) $opnameSebelumnya->total_lapangan : 0;
+    }
+
+    private function resolveTotalMasuk(string $periodeAwal, string $periodeAkhir): int
+    {
+        return (int) BarangMasuk::where('barang_kode', $this->barangKode)
+            ->whereBetween('tanggal', [$periodeAwal, $periodeAkhir])
+            ->sum('qty');
+    }
+
+    private function resolveTotalKeluar(string $periodeAwal, string $periodeAkhir): int
+    {
+        return (int) BarangKeluar::where('barang_kode', $this->barangKode)
+            ->whereBetween('tanggal', [$periodeAwal, $periodeAkhir])
+            ->sum('qty');
     }
 
     /**
      * The number of times the job may be attempted.
      */
-    public $tries = 3;
+    public int $tries = 3;
 
     /**
      * The number of seconds to wait before retrying the job.
      */
-    public $backoff = [10, 30, 60];
+    public array $backoff = [10, 30, 60];
 }

@@ -2,17 +2,20 @@
 
 namespace App\Http\Controllers;
 
-use Carbon\Carbon;
-use App\Models\Stok;
 use App\Models\Barang;
 use App\Models\BarangMasuk;
+use App\Models\Stok;
+use Carbon\Carbon;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Yajra\DataTables\Facades\DataTables;
 
 class BarangMasukController extends Controller
 {
+    private const CURRENCY_PREFIX = 'Rp ';
+
     public function index()
     {
         return view('catat-barang.barang-masuk.index');
@@ -31,17 +34,13 @@ class BarangMasukController extends Controller
                 'barang_masuk.jumlah',
                 'barang.nama',
                 'barang.kode as kode_barang',
-                'users.name as user_name'
+                'users.name as user_name',
             ]);
 
-        if ($request->filled('start_date') && $request->filled('end_date')) {
-            $startDate = Carbon::createFromFormat('Y-m-d', $request->start_date)->startOfDay();
-            $endDate = Carbon::createFromFormat('Y-m-d', $request->end_date)->endOfDay();
-            $query->whereBetween('barang_masuk.tanggal', [$startDate, $endDate]);
-        }
+        $this->applyDateFilter($query, $request, 'barang_masuk.tanggal');
 
         $query->orderBy('barang_masuk.tanggal', 'desc')
-              ->orderBy('barang_masuk.id', 'desc');
+            ->orderBy('barang_masuk.id', 'desc');
 
         return DataTables::of($query)
             ->addIndexColumn()
@@ -49,69 +48,44 @@ class BarangMasukController extends Controller
                 return Carbon::parse($row->tanggal)->isoFormat('DD MMMM YYYY');
             })
             ->editColumn('harga', function ($row) {
-                return 'Rp ' . number_format($row->harga, 0, ',', '.');
+                return $this->formatCurrency((int) $row->harga);
             })
             ->editColumn('jumlah', function ($row) {
-                return 'Rp ' . number_format($row->jumlah, 0, ',', '.');
+                return $this->formatCurrency((int) $row->jumlah);
             })
-            ->addColumn('action', function($row){ // <-- Tambahkan kolom aksi
-                // Tombol Edit
-                $editUrl = route('barang-masuk.edit', $row->id);
-                $btnEdit = '<a href="'.$editUrl.'" class="btn btn-sm btn-warning mr-1"><i class="fas fa-edit"></i> Edit</a>';
-
-                // Tombol Hapus
-                // ID unik untuk form hapus, misalnya delete-form-1, delete-form-2, dst.
-                $deleteFormId = 'delete-form-' . $row->id;
-                $deleteUrl = route('barang-masuk.destroy', $row->id);
-                
-                // Tambahkan class 'delete-btn' untuk event listener JavaScript
-                $btnDelete = '<form id="'.$deleteFormId.'" action="'.$deleteUrl.'" method="POST" style="display:inline;">
-                                '.csrf_field().'
-                                '.method_field("DELETE").'
-                                <button type="submit" class="btn btn-sm btn-danger delete-btn" data-form-id="'.$deleteFormId.'"><i class="fas fa-trash"></i> Hapus</button>
-                            </form>';
-
-                return '<div class="btn-group">'.$btnEdit . $btnDelete.'</div>';
+            ->addColumn('action', function ($row) {
+                return $this->buildActionButtons((int) $row->id);
             })
-            ->rawColumns(['action']) // <-- Beritahu DataTables bahwa kolom 'action' mengandung HTML
+            ->rawColumns(['action'])
             ->make(true);
     }
 
     public function create()
     {
         $barangs = Barang::orderBy('nama', 'asc')->get();
-        $today = Carbon::now(config('app.timezone'))->format('Y-m-d'); // Ambil tanggal hari ini
+        $today = Carbon::now(config('app.timezone'))->format('Y-m-d');
+
         return view('catat-barang.barang-masuk.create', compact('barangs', 'today'));
     }
 
     public function store(Request $request)
     {
-        $request->validate([
-            'barang_kode' => 'required|string|exists:barang,kode',
-            'qty' => 'required|numeric|min:1',
-            'harga' => 'required|numeric|min:0',
-            'tanggal' => 'required|date|before_or_equal:today',
-        ]);
+        $validatedData = $request->validate($this->rules());
 
-        DB::transaction(function () use ($request) {
-            // Simpan data ke tabel barang_masuk
+        DB::transaction(function () use ($validatedData) {
+            $qty = (int) $validatedData['qty'];
+            $harga = (int) $validatedData['harga'];
+
             BarangMasuk::create([
-                'tanggal' => $request->tanggal,
-                'barang_kode' => $request->barang_kode,
-                'qty' => $request->qty,
-                'harga' => $request->harga,
+                'tanggal' => $validatedData['tanggal'],
+                'barang_kode' => $validatedData['barang_kode'],
+                'qty' => $qty,
+                'harga' => $harga,
+                'jumlah' => $qty * $harga,
                 'user_id' => Auth::id(),
             ]);
 
-            // Update atau buat data di tabel stok
-            $stok = Stok::firstOrNew([
-                'barang_kode' => $request->barang_kode,
-                'harga' => $request->harga
-            ]);
-
-            // Tambahkan qty ke jumlah yang sudah ada (jika baru, jumlah awal 0)
-            $stok->jumlah = ($stok->jumlah ?? 0) + $request->qty;
-            $stok->save();
+            $this->adjustStock($validatedData['barang_kode'], $harga, $qty);
         });
 
         return redirect()->route('barang-masuk.index')->with('success', 'Data barang masuk berhasil ditambahkan.');
@@ -120,57 +94,34 @@ class BarangMasukController extends Controller
     public function edit(BarangMasuk $barangMasuk)
     {
         $barangs = Barang::orderBy('nama', 'asc')->get();
-        $today = Carbon::now(config('app.timezone'))->format('Y-m-d'); // Ambil tanggal hari ini
+        $today = Carbon::now(config('app.timezone'))->format('Y-m-d');
+
         return view('catat-barang.barang-masuk.edit', compact('barangMasuk', 'barangs', 'today'));
     }
 
     public function update(Request $request, BarangMasuk $barangMasuk)
     {
-        $request->validate([
-            'barang_kode' => 'required|string|exists:barang,kode',
-            'qty' => 'required|numeric|min:1',
-            'harga' => 'required|numeric|min:0',
-            'tanggal' => 'required|date|before_or_equal:today',
-        ]);
+        $validatedData = $request->validate($this->rules());
 
-        DB::transaction(function () use ($request, $barangMasuk) {
-            // Simpan data LAMA dari barangMasuk sebelum diupdate
+        DB::transaction(function () use ($validatedData, $barangMasuk) {
             $oldBarangKode = $barangMasuk->barang_kode;
-            $oldHarga = $barangMasuk->harga;
-            $oldQty = $barangMasuk->qty;
+            $oldHarga = (int) $barangMasuk->harga;
+            $oldQty = (int) $barangMasuk->qty;
 
-            // 2. Kurangi stok lama
-            $stokLama = Stok::where('barang_kode', $oldBarangKode)
-                            ->where('harga', $oldHarga)
-                            ->first();
-            if ($stokLama) {
-                $stokLama->jumlah -= $oldQty;
-                if ($stokLama->jumlah < 0) $stokLama->jumlah = 0;
-                $stokLama->save();
-            }
+            $newQty = (int) $validatedData['qty'];
+            $newHarga = (int) $validatedData['harga'];
 
-            // Update record barang_masuk dengan data baru
+            $this->adjustStock($oldBarangKode, $oldHarga, -$oldQty);
+
             $barangMasuk->update([
-                'tanggal' => $request->tanggal,
-                'barang_kode' => $request->barang_kode,
-                'qty' => $request->qty,
-                'harga' => $request->harga,
+                'tanggal' => $validatedData['tanggal'],
+                'barang_kode' => $validatedData['barang_kode'],
+                'qty' => $newQty,
+                'harga' => $newHarga,
+                'jumlah' => $newQty * $newHarga,
             ]);
-            // Jika 'jumlah' tidak otomatis terupdate oleh model event saat update:
-            if ($barangMasuk->wasChanged('qty') || $barangMasuk->wasChanged('harga')) {
-                $barangMasuk->jumlah = $barangMasuk->qty * $barangMasuk->harga;
-                $barangMasuk->saveQuietly(); // Simpan tanpa memicu event lain
-            }
 
-
-            // Update stok baru berdasarkan data yang baru diinput
-            $stokBaru = Stok::firstOrNew([
-                'barang_kode' => $request->barang_kode, // Bisa jadi kode barangnya berubah
-                'harga' => $request->harga             // Bisa jadi harganya berubah
-            ]);
-            $stokBaru->jumlah = ($stokBaru->jumlah ?? 0) + $request->qty;
-            $stokBaru->save();
-
+            $this->adjustStock($validatedData['barang_kode'], $newHarga, $newQty);
         });
 
         return redirect()->route('barang-masuk.index')->with('success', 'Data barang masuk berhasil diperbarui.');
@@ -180,23 +131,67 @@ class BarangMasukController extends Controller
     {
         DB::transaction(function () use ($barangMasuk) {
             $barangKodeToDelete = $barangMasuk->barang_kode;
-            $hargaToDelete = $barangMasuk->harga;
-            $qtyToDelete = $barangMasuk->qty;
+            $hargaToDelete = (int) $barangMasuk->harga;
+            $qtyToDelete = (int) $barangMasuk->qty;
 
             $barangMasuk->delete();
 
-            // Kurangi stok barang yang dihapus
-            $stok = Stok::where('barang_kode', $barangKodeToDelete)
-                        ->where('harga', $hargaToDelete)
-                        ->first();
-
-            if ($stok) {
-                $stok->jumlah -= $qtyToDelete;
-                if ($stok->jumlah < 0) $stok->jumlah = 0;
-                $stok->save();
-            }
+            $this->adjustStock($barangKodeToDelete, $hargaToDelete, -$qtyToDelete);
         });
 
         return redirect()->route('barang-masuk.index')->with('success', 'Data barang masuk berhasil dihapus.');
+    }
+
+    private function rules(): array
+    {
+        return [
+            'barang_kode' => 'required|string|exists:barang,kode',
+            'qty' => 'required|numeric|min:1',
+            'harga' => 'required|numeric|min:0',
+            'tanggal' => 'required|date|before_or_equal:today',
+        ];
+    }
+
+    private function applyDateFilter(Builder $query, Request $request, string $column): void
+    {
+        if (! $request->filled('start_date') || ! $request->filled('end_date')) {
+            return;
+        }
+
+        $startDate = Carbon::createFromFormat('Y-m-d', $request->start_date)->startOfDay();
+        $endDate = Carbon::createFromFormat('Y-m-d', $request->end_date)->endOfDay();
+        $query->whereBetween($column, [$startDate, $endDate]);
+    }
+
+    private function formatCurrency(int $value): string
+    {
+        return self::CURRENCY_PREFIX.number_format($value, 0, ',', '.');
+    }
+
+    private function buildActionButtons(int $recordId): string
+    {
+        $editUrl = route('barang-masuk.edit', $recordId);
+        $btnEdit = '<a href="'.$editUrl.'" class="btn btn-sm btn-warning mr-1"><i class="fas fa-edit"></i> Edit</a>';
+
+        $deleteFormId = 'delete-form-'.$recordId;
+        $deleteUrl = route('barang-masuk.destroy', $recordId);
+        $btnDelete = '<form id="'.$deleteFormId.'" action="'.$deleteUrl.'" method="POST" style="display:inline;">'
+            .csrf_field()
+            .method_field('DELETE')
+            .'<button type="submit" class="btn btn-sm btn-danger delete-btn" data-form-id="'.$deleteFormId.'"><i class="fas fa-trash"></i> Hapus</button>'
+            .'</form>';
+
+        return '<div class="btn-group">'.$btnEdit.$btnDelete.'</div>';
+    }
+
+    private function adjustStock(string $barangKode, int $harga, int $deltaQty): void
+    {
+        $stok = Stok::firstOrNew([
+            'barang_kode' => $barangKode,
+            'harga' => $harga,
+        ]);
+
+        $stok->jumlah = max(0, (int) ($stok->jumlah ?? 0) + $deltaQty);
+        $stok->save();
     }
 }

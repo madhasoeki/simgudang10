@@ -2,67 +2,57 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\BarangKeluar;
 use App\Models\Tempat;
 use Carbon\Carbon;
-use Yajra\DataTables\Facades\DataTables; // Pastikan ini di-import
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Yajra\DataTables\Facades\DataTables;
 
 class LaporanPerTempatController extends Controller
 {
+    private const CURRENCY_PREFIX = 'Rp ';
+
     public function index()
     {
         $tempats = Tempat::orderBy('nama')->get();
+
         return view('laporan.per_tempat', compact('tempats'));
     }
 
     public function data(Request $request)
     {
         if ($request->ajax()) {
-            // ATURAN BARU: Hanya proses jika tempat_id dipilih dan tidak kosong
-            if (!$request->filled('tempat_id') || empty($request->tempat_id)) {
-                return Datatables::of(collect([])) // Kirim koleksi kosong jika tempat belum dipilih
-                    ->addIndexColumn()
-                    // Tambahkan kolom kosong agar struktur DataTables tetap sama
-                    ->addColumn('kode_barang', function ($row) { return ''; })
-                    ->editColumn('tanggal', function ($row) { return ''; }) // Menggunakan 'tanggal'
-                    ->addColumn('nama_barang', function ($row) { return ''; })
-                    ->addColumn('satuan_barang', function ($row) { return ''; })
-                    ->editColumn('harga', function ($row) { return ''; })
-                    ->addColumn('jumlah_harga', function ($row) { return ''; })
-                    ->addColumn('nama_tempat', function ($row) { return ''; })
-                    ->addColumn('qty', function ($row) { return ''; }) // Tambahkan qty
-                    ->addColumn('keterangan', function ($row) { return ''; }) // Tambahkan keterangan
-                    ->rawColumns(['harga', 'jumlah_harga'])
-                    ->make(true);
+            if (! $request->filled('tempat_id') || empty($request->tempat_id)) {
+                return $this->emptyDataTableResponse();
             }
 
             $query = BarangKeluar::with(['barang', 'tempat'])
                 ->select('barang_keluar.*')
-                ->where('tempat_id', $request->tempat_id); // Filter utama berdasarkan tempat_id
+                ->where('tempat_id', $request->tempat_id);
 
-            // Filter berdasarkan periode tanggal keluar
-            // Untuk laporan barang keluar, kita gunakan tanggal transaksi langsung, bukan periode opname
             if ($request->filled('start_date') && $request->filled('end_date')) {
                 try {
                     $startDate = Carbon::parse($request->start_date)->startOfDay();
                     $endDate = Carbon::parse($request->end_date)->endOfDay();
-                    // Menggunakan kolom 'tanggal' sesuai informasimu
                     $query->whereBetween('tanggal', [$startDate, $endDate]);
-                } catch (\Exception $e) {
-                    Log::error('Error parsing date for LaporanPerTempat: ' . $e->getMessage());
-                    // Mungkin kembalikan error atau data kosong jika tanggal tidak valid
-                     return Datatables::of(collect([]))->addIndexColumn()->make(true);
+                } catch (\Throwable $exception) {
+                    Log::error('Error parsing date for laporan per tempat.', [
+                        'start_date' => $request->start_date,
+                        'end_date' => $request->end_date,
+                        'error' => $exception->getMessage(),
+                    ]);
+
+                    return $this->emptyDataTableResponse();
                 }
             }
 
-            return Datatables::of($query)
+            return DataTables::of($query)
                 ->addIndexColumn()
                 ->addColumn('kode_barang', function ($row) {
                     return $row->barang->kode ?? '-';
                 })
-                ->editColumn('tanggal', function ($row) { // Menggunakan 'tanggal' dari barang_keluar
+                ->editColumn('tanggal', function ($row) {
                     return Carbon::parse($row->tanggal)->format('d M Y');
                 })
                 ->addColumn('nama_barang', function ($row) {
@@ -72,18 +62,40 @@ class LaporanPerTempatController extends Controller
                     return $row->barang->satuan ?? '-';
                 })
                 ->editColumn('harga', function ($row) {
-                    return 'Rp ' . number_format($row->harga, 0, ',', '.');
+                    return $this->formatCurrency((int) $row->harga);
                 })
                 ->addColumn('jumlah_harga', function ($row) {
-                    return 'Rp ' . number_format($row->qty * $row->harga, 0, ',', '.');
+                    return $this->formatCurrency((int) ($row->qty * $row->harga));
                 })
                 ->addColumn('nama_tempat', function ($row) {
                     return $row->tempat->nama ?? '-';
                 })
-                // Kolom 'qty' dan 'keterangan' sudah ada di $row (BarangKeluar model)
-                // jadi tidak perlu addColumn khusus jika namanya sama persis
                 ->rawColumns(['harga', 'jumlah_harga'])
                 ->make(true);
         }
+
+        return response()->json(['message' => 'Invalid request.'], 400);
+    }
+
+    private function formatCurrency(int $value): string
+    {
+        return self::CURRENCY_PREFIX.number_format($value, 0, ',', '.');
+    }
+
+    private function emptyDataTableResponse()
+    {
+        return DataTables::of(collect([]))
+            ->addIndexColumn()
+            ->addColumn('kode_barang', fn () => '')
+            ->editColumn('tanggal', fn () => '')
+            ->addColumn('nama_barang', fn () => '')
+            ->addColumn('satuan_barang', fn () => '')
+            ->editColumn('harga', fn () => '')
+            ->addColumn('jumlah_harga', fn () => '')
+            ->addColumn('nama_tempat', fn () => '')
+            ->addColumn('qty', fn () => '')
+            ->addColumn('keterangan', fn () => '')
+            ->rawColumns(['harga', 'jumlah_harga'])
+            ->make(true);
     }
 }
